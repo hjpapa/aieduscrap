@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { newsCategories, normalizeCategory } from "@/lib/categories";
+import { inferNewsCategory, newsCategories, normalizeCategory } from "@/lib/categories";
 import { getKstDayRange } from "@/lib/date";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { DailyBriefing, EducationNews, Importance, NewsCategory } from "@/lib/types";
@@ -137,7 +137,7 @@ function TodayBriefingCard({
             <article className="rounded-lg border border-stone-100 bg-stone-50/70 p-4" key={item.id}>
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
                 <span className="rounded-full bg-white px-2.5 py-1 text-emerald-800">{index + 1}</span>
-                <span>{normalizeCategory(item.category)}</span>
+                <span>{inferNewsCategory(item.title, item.category)}</span>
                 <span>·</span>
                 <span>{item.source}</span>
                 <span>·</span>
@@ -179,7 +179,7 @@ function TodayBriefingCard({
 }
 
 function NewsCard({ item, featured = false }: { item: EducationNews; featured?: boolean }) {
-  const category = normalizeCategory(item.category);
+  const category = inferNewsCategory(item.title, item.category);
   const importance = item.importance ?? "medium";
 
   return (
@@ -253,12 +253,12 @@ export default async function Home({
 
   const counts = new Map<NewsCategory, number>(newsCategories.map((category) => [category, 0]));
   for (const item of news) {
-    const category = normalizeCategory(item.category);
+    const category = inferNewsCategory(item.title, item.category);
     counts.set(category, (counts.get(category) ?? 0) + 1);
   }
 
   const filteredNews =
-    selectedCategory === "전체" ? news : news.filter((item) => normalizeCategory(item.category) === selectedCategory);
+    selectedCategory === "전체" ? news : news.filter((item) => inferNewsCategory(item.title, item.category) === selectedCategory);
   const topNews = filteredNews.filter((item) => item.importance === "high").slice(0, 5);
   const remainingNews = filteredNews.filter((item) => !topNews.some((topItem) => topItem.id === item.id));
   const majorNews = news

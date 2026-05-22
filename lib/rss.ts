@@ -1,5 +1,5 @@
 import Parser from "rss-parser";
-import { normalizeCategory } from "./categories";
+import { inferNewsCategory, normalizeCategory } from "./categories";
 import type { CollectedNewsItem, NewsCategory } from "./types";
 
 type FeedConfig = {
@@ -189,7 +189,7 @@ export async function collectEducationNews() {
           source: feed.name,
           url,
           published_at: toIsoDate(item.isoDate ?? item.pubDate),
-          category: normalizeCategory(feed.category),
+          category: inferNewsCategory(title, feed.category),
         });
       }
     } catch (error) {
