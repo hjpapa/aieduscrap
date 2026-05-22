@@ -109,6 +109,18 @@ npm run dev
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/collect-news
 ```
 
+오늘 수집분의 유사 제목 중복 후보 확인:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/dedupe-news?dryRun=true"
+```
+
+오늘 수집분의 유사 제목 중복 삭제:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/dedupe-news?dryRun=false"
+```
+
 브리핑 생성:
 
 ```bash

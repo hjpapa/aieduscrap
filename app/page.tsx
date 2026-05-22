@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { inferNewsCategory, newsCategories, normalizeCategory } from "@/lib/categories";
 import { getKstDayRange } from "@/lib/date";
+import { dedupeNewsForDisplay } from "@/lib/dedupe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { DailyBriefing, EducationNews, Importance, NewsCategory } from "@/lib/types";
 
@@ -259,8 +260,9 @@ export default async function Home({
 
   const filteredNews =
     selectedCategory === "전체" ? news : news.filter((item) => inferNewsCategory(item.title, item.category) === selectedCategory);
-  const topNews = filteredNews.filter((item) => item.importance === "high").slice(0, 5);
-  const remainingNews = filteredNews.filter((item) => !topNews.some((topItem) => topItem.id === item.id));
+  const { kept: dedupedFilteredNews } = dedupeNewsForDisplay(filteredNews);
+  const topNews = dedupedFilteredNews.filter((item) => item.importance === "high").slice(0, 5);
+  const remainingNews = dedupedFilteredNews.filter((item) => !topNews.some((topItem) => topItem.id === item.id));
   const majorNews = news
     .filter((item) => item.summary || item.teacher_insight)
     .slice(0, 5);

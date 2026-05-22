@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
 import { inferNewsCategory, normalizeCategory } from "./categories";
+import { isSimilarToAnyTitle } from "./dedupe";
 import type { CollectedNewsItem, NewsCategory } from "./types";
 
 type FeedConfig = {
@@ -83,57 +84,6 @@ function toIsoDate(value?: string) {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
-function normalizeTitle(title: string) {
-  return title
-    .replace(/\s+-\s+.+$/u, "")
-    .replace(/\[[^\]]+\]/gu, "")
-    .replace(/[^\p{Letter}\p{Number}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-function tokenizeTitle(title: string) {
-  return new Set(
-    normalizeTitle(title)
-      .split(" ")
-      .map((token) => token.trim())
-      .filter((token) => token.length >= 2),
-  );
-}
-
-function isSimilarTitle(title: string, existingTitles: string[]) {
-  const normalized = normalizeTitle(title);
-
-  if (!normalized) {
-    return false;
-  }
-
-  for (const existingTitle of existingTitles) {
-    const existingNormalized = normalizeTitle(existingTitle);
-
-    if (normalized === existingNormalized) {
-      return true;
-    }
-
-    const currentTokens = tokenizeTitle(normalized);
-    const existingTokens = tokenizeTitle(existingNormalized);
-
-    if (currentTokens.size < 4 || existingTokens.size < 4) {
-      continue;
-    }
-
-    const intersection = [...currentTokens].filter((token) => existingTokens.has(token)).length;
-    const union = new Set([...currentTokens, ...existingTokens]).size;
-
-    if (union > 0 && intersection / union >= 0.72) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 async function fetchFeedXml(url: string) {
   let lastError: unknown;
 
@@ -178,7 +128,7 @@ export async function collectEducationNews() {
         const url = item.link?.trim();
         const title = item.title?.trim();
 
-        if (!url || !title || seen.has(url) || isSimilarTitle(title, seenTitles)) {
+        if (!url || !title || seen.has(url) || isSimilarToAnyTitle(title, seenTitles)) {
           continue;
         }
 
