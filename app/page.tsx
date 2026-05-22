@@ -59,7 +59,7 @@ async function getTodayBriefing() {
       .gte("published_at", start)
       .lt("published_at", end)
       .order("published_at", { ascending: false })
-      .limit(50),
+      .limit(100),
   ]);
 
   return {

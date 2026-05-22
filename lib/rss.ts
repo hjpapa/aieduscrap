@@ -31,6 +31,21 @@ const defaultFeeds: FeedConfig[] = [
     url: "https://news.google.com/rss/search?q=AI%EA%B5%90%EC%9C%A1&hl=ko&gl=KR&ceid=KR:ko",
     category: "AI교육",
   },
+  {
+    name: "Google 뉴스 - 디지털교육",
+    url: "https://news.google.com/rss/search?q=%EB%94%94%EC%A7%80%ED%84%B8%EA%B5%90%EC%9C%A1&hl=ko&gl=KR&ceid=KR:ko",
+    category: "디지털교육",
+  },
+  {
+    name: "Google 뉴스 - 생활지도",
+    url: "https://news.google.com/rss/search?q=%EC%83%9D%ED%99%9C%EC%A7%80%EB%8F%84+%ED%95%99%EA%B5%90&hl=ko&gl=KR&ceid=KR:ko",
+    category: "생활지도",
+  },
+  {
+    name: "Google 뉴스 - 교육평가",
+    url: "https://news.google.com/rss/search?q=%EA%B5%90%EC%9C%A1%ED%8F%89%EA%B0%80+%ED%95%99%EA%B5%90&hl=ko&gl=KR&ceid=KR:ko",
+    category: "평가",
+  },
 ];
 
 function getFeedConfigs() {
@@ -68,6 +83,57 @@ function toIsoDate(value?: string) {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
+function normalizeTitle(title: string) {
+  return title
+    .replace(/\s+-\s+.+$/u, "")
+    .replace(/\[[^\]]+\]/gu, "")
+    .replace(/[^\p{Letter}\p{Number}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function tokenizeTitle(title: string) {
+  return new Set(
+    normalizeTitle(title)
+      .split(" ")
+      .map((token) => token.trim())
+      .filter((token) => token.length >= 2),
+  );
+}
+
+function isSimilarTitle(title: string, existingTitles: string[]) {
+  const normalized = normalizeTitle(title);
+
+  if (!normalized) {
+    return false;
+  }
+
+  for (const existingTitle of existingTitles) {
+    const existingNormalized = normalizeTitle(existingTitle);
+
+    if (normalized === existingNormalized) {
+      return true;
+    }
+
+    const currentTokens = tokenizeTitle(normalized);
+    const existingTokens = tokenizeTitle(existingNormalized);
+
+    if (currentTokens.size < 4 || existingTokens.size < 4) {
+      continue;
+    }
+
+    const intersection = [...currentTokens].filter((token) => existingTokens.has(token)).length;
+    const union = new Set([...currentTokens, ...existingTokens]).size;
+
+    if (union > 0 && intersection / union >= 0.72) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 async function fetchFeedXml(url: string) {
   let lastError: unknown;
 
@@ -101,6 +167,7 @@ export async function collectEducationNews() {
   const collected: CollectedNewsItem[] = [];
   const errors: Array<{ feed: string; message: string }> = [];
   const seen = new Set<string>();
+  const seenTitles: string[] = [];
 
   for (const feed of feeds) {
     try {
@@ -111,11 +178,12 @@ export async function collectEducationNews() {
         const url = item.link?.trim();
         const title = item.title?.trim();
 
-        if (!url || !title || seen.has(url)) {
+        if (!url || !title || seen.has(url) || isSimilarTitle(title, seenTitles)) {
           continue;
         }
 
         seen.add(url);
+        seenTitles.push(title);
         collected.push({
           title,
           source: feed.name,
