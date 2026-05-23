@@ -47,9 +47,46 @@ export default function AgentChat() {
   const [period, setPeriod] = useState<AgentPeriod>("today");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<AgentResponse | null>(null);
+  const [answerOpen, setAnswerOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const referenceIds = useMemo(() => response?.references.map((item) => item.id) ?? [], [response]);
+  const answerExportText = useMemo(() => {
+    if (!response) {
+      return "";
+    }
+
+    const references = response.references
+      .map((item, index) => `${index + 1}. ${item.title}\n- 출처: ${item.source}\n- URL: ${item.url}`)
+      .join("\n\n");
+
+    return [`뉴스 근거 답변`, response.answer, "", "참고 뉴스", references].join("\n\n");
+  }, [response]);
+
+  async function copyAnswer() {
+    if (!answerExportText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(answerExportText);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function exportAnswer() {
+    if (!answerExportText) {
+      return;
+    }
+
+    const blob = new Blob([answerExportText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `education-news-answer-${new Date().toISOString().slice(0, 10)}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +119,7 @@ export default function AgentChat() {
       }
 
       setResponse(body);
+      setAnswerOpen(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "답변을 생성하지 못했습니다.");
     } finally {
@@ -169,51 +207,114 @@ export default function AgentChat() {
       {error ? <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
 
       {response ? (
-        <div className="mt-5 grid min-w-0 gap-4">
-          <article className="min-w-0 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-black text-stone-950">뉴스 근거 답변</h3>
+        <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-emerald-800">ANSWER READY</p>
+              <h3 className="mt-1 text-base font-black text-stone-950">답변이 생성되었습니다</h3>
+              <p className="mt-1 text-sm leading-6 text-stone-600">
+                참고 뉴스 {response.references.length}건을 바탕으로 정리했습니다.
+              </p>
+            </div>
+            <div className="flex gap-2">
               {response.provider ? (
-                <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-emerald-800">{response.provider}</span>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-800">{response.provider}</span>
               ) : null}
             </div>
-            <div className="max-h-80 overflow-y-auto whitespace-pre-wrap pr-1 text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
-              {response.answer}
-            </div>
-          </article>
+          </div>
 
-          <section className="grid min-w-0 gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-black text-stone-950">참고 뉴스</h3>
-              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-500">
-                {response.references.length}건
-              </span>
-            </div>
-            {response.references.length > 0 ? (
-              <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
-                {response.references.map((item) => (
-                  <a
-                    className="min-w-0 rounded-md border border-stone-200 bg-white p-3 text-sm transition hover:border-emerald-700 hover:bg-emerald-50"
-                    href={item.url}
-                    key={item.id}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <span className="block break-words font-bold leading-6 text-stone-950">{item.title}</span>
-                    <span className="mt-1 block break-words text-xs font-semibold text-stone-500">
-                      {item.source} · {formatDate(item.published_at)}
-                    </span>
-                  </a>
-                ))}
+          <button
+            className="mt-4 w-full rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-900"
+            onClick={() => setAnswerOpen(true)}
+            type="button"
+          >
+            답변 창 열기
+          </button>
+        </div>
+      ) : null}
+
+      {response && answerOpen ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-stone-950/45 p-4">
+          <section
+            aria-labelledby="agent-answer-title"
+            className="grid max-h-[92vh] w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg bg-white shadow-2xl"
+            role="dialog"
+          >
+            <header className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 p-5">
+              <div>
+                <p className="text-xs font-bold text-emerald-800">AGENT ANSWER</p>
+                <h3 className="mt-1 text-xl font-black text-stone-950" id="agent-answer-title">
+                  뉴스 근거 답변
+                </h3>
               </div>
-            ) : (
-              <p className="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-500">
-                참고할 저장 뉴스가 없습니다.
-              </p>
-            )}
-          </section>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  onClick={copyAnswer}
+                  type="button"
+                >
+                  {copied ? "복사됨" : "복사"}
+                </button>
+                <button
+                  className="rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  onClick={exportAnswer}
+                  type="button"
+                >
+                  내보내기
+                </button>
+                <button
+                  className="rounded-md bg-stone-900 px-3 py-2 text-sm font-bold text-white transition hover:bg-stone-700"
+                  onClick={() => setAnswerOpen(false)}
+                  type="button"
+                >
+                  닫기
+                </button>
+              </div>
+            </header>
 
-          {referenceIds.length > 0 ? <TransformButtons newsIds={referenceIds} roleType={roleType} /> : null}
+            <div className="grid min-h-0 gap-5 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <article className="min-w-0 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
+                <div className="whitespace-pre-wrap text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
+                  {response.answer}
+                </div>
+              </article>
+
+              <aside className="grid content-start gap-4">
+                <section className="rounded-lg border border-stone-200 bg-white p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-black text-stone-950">참고 뉴스</h4>
+                    <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-500">
+                      {response.references.length}건
+                    </span>
+                  </div>
+                  {response.references.length > 0 ? (
+                    <div className="grid gap-2">
+                      {response.references.map((item) => (
+                        <a
+                          className="min-w-0 rounded-md border border-stone-200 bg-stone-50 p-3 text-sm transition hover:border-emerald-700 hover:bg-emerald-50"
+                          href={item.url}
+                          key={item.id}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <span className="block break-words font-bold leading-6 text-stone-950">{item.title}</span>
+                          <span className="mt-1 block break-words text-xs font-semibold text-stone-500">
+                            {item.source} · {formatDate(item.published_at)}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-500">
+                      참고할 저장 뉴스가 없습니다.
+                    </p>
+                  )}
+                </section>
+
+                {referenceIds.length > 0 ? <TransformButtons newsIds={referenceIds} roleType={roleType} /> : null}
+              </aside>
+            </div>
+          </section>
         </div>
       ) : null}
     </section>

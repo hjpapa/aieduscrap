@@ -20,7 +20,33 @@ const outputs: Array<{ type: OutputType; label: string }> = [
 export default function TransformButtons({ newsIds, roleType }: { newsIds: string[]; roleType: RoleType }) {
   const [loadingType, setLoadingType] = useState<OutputType | null>(null);
   const [result, setResult] = useState<TransformResult | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function copyResult() {
+    if (!result) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(`${result.title}\n\n${result.content}`);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function exportResult() {
+    if (!result) {
+      return;
+    }
+
+    const blob = new Blob([`${result.title}\n\n${result.content}`], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${result.title.replace(/[^\p{L}\p{N}]+/gu, "-")}-${new Date().toISOString().slice(0, 10)}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleTransform(outputType: OutputType) {
     setLoadingType(outputType);
@@ -45,6 +71,7 @@ export default function TransformButtons({ newsIds, roleType }: { newsIds: strin
       }
 
       setResult(body);
+      setResultOpen(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "산출물을 생성하지 못했습니다.");
     } finally {
@@ -76,17 +103,66 @@ export default function TransformButtons({ newsIds, roleType }: { newsIds: strin
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
 
       {result ? (
-        <article className="min-w-0 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h4 className="text-base font-black text-stone-950">{result.title}</h4>
-            {result.provider ? (
-              <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-emerald-800">{result.provider}</span>
-            ) : null}
-          </div>
-          <div className="max-h-80 overflow-y-auto whitespace-pre-wrap pr-1 text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
-            {result.content}
-          </div>
-        </article>
+        <button
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-bold text-emerald-900 transition hover:border-emerald-700"
+          onClick={() => setResultOpen(true)}
+          type="button"
+        >
+          {result.title} 열기
+        </button>
+      ) : null}
+
+      {result && resultOpen ? (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-stone-950/45 p-4">
+          <section
+            aria-labelledby="transform-result-title"
+            className="grid max-h-[92vh] w-full max-w-3xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg bg-white shadow-2xl"
+            role="dialog"
+          >
+            <header className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 p-5">
+              <div>
+                <p className="text-xs font-bold text-emerald-800">GENERATED OUTPUT</p>
+                <h4 className="mt-1 text-xl font-black text-stone-950" id="transform-result-title">
+                  {result.title}
+                </h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {result.provider ? (
+                  <span className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                    {result.provider}
+                  </span>
+                ) : null}
+                <button
+                  className="rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  onClick={copyResult}
+                  type="button"
+                >
+                  {copied ? "복사됨" : "복사"}
+                </button>
+                <button
+                  className="rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  onClick={exportResult}
+                  type="button"
+                >
+                  내보내기
+                </button>
+                <button
+                  className="rounded-md bg-stone-900 px-3 py-2 text-sm font-bold text-white transition hover:bg-stone-700"
+                  onClick={() => setResultOpen(false)}
+                  type="button"
+                >
+                  닫기
+                </button>
+              </div>
+            </header>
+
+            <div className="min-h-0 overflow-y-auto p-5">
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 whitespace-pre-wrap text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
+                {result.content}
+              </div>
+            </div>
+          </section>
+        </div>
       ) : null}
     </section>
   );
