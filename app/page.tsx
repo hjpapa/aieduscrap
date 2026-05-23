@@ -221,64 +221,70 @@ function TodayBriefingCard({
 
 function AiTrendRadar({ items }: { items: EducationNews[] }) {
   return (
-    <section className="rounded-lg border border-emerald-100 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <details className="group rounded-lg border border-emerald-100 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
         <div>
           <p className="text-xs font-bold text-emerald-800">AI EDUCATION RADAR</p>
           <h2 className="mt-1 text-xl font-black text-stone-950">AI교육 동향 레이더</h2>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-          오늘 포착 {items.length}건
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+            오늘 포착 {items.length}건
+          </span>
+          <span className="text-sm font-bold text-emerald-800 group-open:hidden">펼치기</span>
+          <span className="hidden text-sm font-bold text-stone-500 group-open:inline">접기</span>
+        </div>
+      </summary>
+
+      <div className="border-t border-stone-100 p-5 pt-4">
+        {items.length > 0 ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {items.map((item) => (
+              <article className="rounded-lg border border-stone-200 bg-stone-50/60 p-4" key={item.id}>
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
+                  <span className="rounded-full bg-white px-2.5 py-1 text-emerald-800">
+                    {inferNewsCategory(item.title, item.category)}
+                  </span>
+                  {getTrustedSourceLabel(item) ? (
+                    <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">{getTrustedSourceLabel(item)}</span>
+                  ) : null}
+                  <span>{item.source}</span>
+                  <span>·</span>
+                  <time dateTime={item.published_at}>{formatDate(item.published_at)}</time>
+                </div>
+
+                <h3 className="text-base font-black leading-snug text-stone-950">{getDisplayTitle(item)}</h3>
+                {hasTranslatedTitle(item) ? <p className="mt-1 text-xs leading-5 text-stone-500">{item.title}</p> : null}
+
+                <div className="mt-3 grid gap-2 text-sm leading-6 text-stone-700">
+                  <p>
+                    <span className="font-bold text-emerald-800">동향 포인트: </span>
+                    <span>{item.summary ?? "요약 생성 후 AI교육 동향 포인트가 표시됩니다."}</span>
+                  </p>
+                  <p>
+                    <span className="font-bold text-emerald-800">교사 관점: </span>
+                    <span>{item.teacher_insight ?? "교사 관점 통찰 생성 후 표시됩니다."}</span>
+                  </p>
+                </div>
+
+                <a
+                  className="mt-3 inline-flex w-fit rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-50"
+                  href={item.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  원문 확인
+                </a>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50/70 p-5 text-sm leading-6 text-stone-500">
+            오늘 수집된 뉴스 중 AI교육으로 분류된 항목이 아직 없습니다. 국제 AI교육 RSS가 수집되면 이 영역에 먼저 표시됩니다.
+          </div>
+        )}
       </div>
-
-      {items.length > 0 ? (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {items.map((item) => (
-            <article className="rounded-lg border border-stone-200 bg-stone-50/60 p-4" key={item.id}>
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
-                <span className="rounded-full bg-white px-2.5 py-1 text-emerald-800">
-                  {inferNewsCategory(item.title, item.category)}
-                </span>
-                {getTrustedSourceLabel(item) ? (
-                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">{getTrustedSourceLabel(item)}</span>
-                ) : null}
-                <span>{item.source}</span>
-                <span>·</span>
-                <time dateTime={item.published_at}>{formatDate(item.published_at)}</time>
-              </div>
-
-              <h3 className="text-base font-black leading-snug text-stone-950">{getDisplayTitle(item)}</h3>
-              {hasTranslatedTitle(item) ? <p className="mt-1 text-xs leading-5 text-stone-500">{item.title}</p> : null}
-
-              <div className="mt-3 grid gap-2 text-sm leading-6 text-stone-700">
-                <p>
-                  <span className="font-bold text-emerald-800">동향 포인트: </span>
-                  <span>{item.summary ?? "요약 생성 후 AI교육 동향 포인트가 표시됩니다."}</span>
-                </p>
-                <p>
-                  <span className="font-bold text-emerald-800">교사 관점: </span>
-                  <span>{item.teacher_insight ?? "교사 관점 통찰 생성 후 표시됩니다."}</span>
-                </p>
-              </div>
-
-              <a
-                className="mt-3 inline-flex w-fit rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-bold text-emerald-800 transition hover:border-emerald-700 hover:bg-emerald-50"
-                href={item.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                원문 확인
-              </a>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50/70 p-5 text-sm leading-6 text-stone-500">
-          오늘 수집된 뉴스 중 AI교육으로 분류된 항목이 아직 없습니다. 국제 AI교육 RSS가 수집되면 이 영역에 먼저 표시됩니다.
-        </div>
-      )}
-    </section>
+    </details>
   );
 }
 
@@ -413,7 +419,7 @@ export default async function Home({
 
           <AiTrendRadar items={highlightedAiTrendNews} />
 
-          <details className="group scroll-mt-4 rounded-lg border border-stone-200 bg-white shadow-sm" id="news-list" open>
+          <details className="group scroll-mt-4 rounded-lg border border-stone-200 bg-white shadow-sm" id="news-list">
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
               <div>
                 <p className="text-xs font-bold text-emerald-800">CATEGORY</p>
