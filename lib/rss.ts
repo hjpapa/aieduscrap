@@ -2,6 +2,7 @@ import Parser from "rss-parser";
 import { inferNewsCategory, normalizeCategory } from "./categories";
 import { isSimilarToAnyTitle } from "./dedupe";
 import { getNewsMaxAgeDays, isFreshPublishedAt } from "./newsFreshness";
+import { isCollectableNewsItem } from "./newsQuality";
 import type { CollectedNewsItem, NewsCategory } from "./types";
 
 type FeedConfig = {
@@ -40,12 +41,12 @@ const defaultFeeds: FeedConfig[] = [
   },
   {
     name: "교육부 공식 뉴스",
-    url: googleNewsSearchUrl("site:moe.go.kr 교육 OR 인공지능 OR 디지털교육"),
+    url: googleNewsSearchUrl('site:moe.go.kr 보도자료 교육부 "AI 디지털교과서" OR 인공지능교육'),
     category: "교육정책",
   },
   {
     name: "KERIS 공식 뉴스",
-    url: googleNewsSearchUrl("site:keris.or.kr AI교육 OR 디지털교육 OR 에듀테크 OR 교육데이터"),
+    url: googleNewsSearchUrl("site:keris.or.kr 보도자료 AI교육 OR 디지털교육 OR 에듀테크 OR 교육데이터"),
     category: "디지털교육",
   },
   {
@@ -230,6 +231,12 @@ async function collectFeed(feed: FeedConfig) {
       return [];
     }
 
+    const source = extractItemSource(item, feed.name);
+
+    if (!isCollectableNewsItem({ title, source })) {
+      return [];
+    }
+
     const published_at = toIsoDate(item.isoDate ?? item.pubDate);
 
     if (!isFreshPublishedAt(published_at)) {
@@ -239,7 +246,7 @@ async function collectFeed(feed: FeedConfig) {
     return [
       {
         title,
-        source: extractItemSource(item, feed.name),
+        source,
         url,
         published_at,
         category: inferNewsCategory(title, feed.category),

@@ -5,6 +5,7 @@ import { getKstDayRange } from "@/lib/date";
 import { dedupeNewsForDisplay } from "@/lib/dedupe";
 import { isFreshPublishedAt } from "@/lib/newsFreshness";
 import { getDisplayTitle, hasTranslatedTitle } from "@/lib/newsDisplay";
+import { isCollectableNewsItem } from "@/lib/newsQuality";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTrustedSourceLabel, getTrustedSourceScore } from "@/lib/trustedSources";
 import type { DailyBriefing, EducationNews, Importance, NewsCategory } from "@/lib/types";
@@ -94,7 +95,7 @@ async function getTodayBriefing() {
   const newsMap = new Map<string, EducationNews>();
 
   for (const item of [...((publishedNews ?? []) as EducationNews[]), ...((collectedNews ?? []) as EducationNews[])]) {
-    if (isFreshPublishedAt(item.published_at)) {
+    if (isFreshPublishedAt(item.published_at) && isCollectableNewsItem(item)) {
       newsMap.set(item.id, item);
     }
   }

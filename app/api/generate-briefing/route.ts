@@ -5,6 +5,7 @@ import { batchNewsInsightPrompt, dailyBriefingPrompt } from "@/lib/prompts";
 import { getKstDayRange } from "@/lib/date";
 import { isFreshPublishedAt } from "@/lib/newsFreshness";
 import { getDisplayTitle } from "@/lib/newsDisplay";
+import { isCollectableNewsItem } from "@/lib/newsQuality";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTrustedSourceScore } from "@/lib/trustedSources";
 import type { EducationNews } from "@/lib/types";
@@ -120,7 +121,7 @@ export async function GET(request: Request) {
     ...((publishedResult.data ?? []) as EducationNews[]),
     ...((collectedResult.data ?? []) as EducationNews[]),
   ]) {
-    if (isFreshPublishedAt(item.published_at)) {
+    if (isFreshPublishedAt(item.published_at) && isCollectableNewsItem(item)) {
       newsMap.set(item.id, item);
     }
   }

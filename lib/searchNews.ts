@@ -2,6 +2,7 @@ import { inferNewsCategory, newsCategories } from "./categories";
 import { getKstDayRange } from "./date";
 import { getDisplayTitle } from "./newsDisplay";
 import { isFreshPublishedAt } from "./newsFreshness";
+import { isCollectableNewsItem } from "./newsQuality";
 import { getSupabaseAdmin } from "./supabase";
 import { getTrustedSourceScore } from "./trustedSources";
 import type { AgentPeriod, EducationNews, Importance } from "./types";
@@ -137,7 +138,7 @@ export async function searchNews({
     ...((publishedResult.data ?? []) as EducationNews[]),
     ...((collectedResult.data ?? []) as EducationNews[]),
   ]) {
-    if (isFreshPublishedAt(item.published_at, new Date(), periodDays[period])) {
+    if (isFreshPublishedAt(item.published_at, new Date(), periodDays[period]) && isCollectableNewsItem(item)) {
       newsMap.set(item.id, item);
     }
   }
