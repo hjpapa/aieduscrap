@@ -9,6 +9,8 @@ type FeedConfig = {
   name: string;
   url: string;
   category?: NewsCategory;
+  sourceType?: "direct" | "google_news" | "custom";
+  maxItems?: number;
 };
 
 const parser = new Parser({
@@ -33,108 +35,168 @@ function googleNewsSearchUrl(query: string, locale: "ko" | "en" = "ko") {
   return `https://news.google.com/rss/search?q=${encodeURIComponent(timedQuery)}&hl=${params.hl}&gl=${params.gl}&ceid=${params.ceid}`;
 }
 
-const defaultFeeds: FeedConfig[] = [
+const directFeeds: FeedConfig[] = [
   {
     name: "교육부 정책브리핑",
     url: "https://www.korea.kr/rss/dept_moe.xml",
     category: "교육정책",
+    sourceType: "direct",
   },
+  {
+    name: "UNESCO-UNEVOC News",
+    url: "https://www.unevoc.unesco.org/unevoc_news.xml",
+    category: "교육정책",
+    sourceType: "direct",
+    maxItems: 12,
+  },
+  {
+    name: "EdSurge",
+    url: "https://www.edsurge.com/articles_rss",
+    category: "AI교육",
+    sourceType: "direct",
+    maxItems: 15,
+  },
+  {
+    name: "The 74",
+    url: "https://www.the74million.org/feed/",
+    category: "교육정책",
+    sourceType: "direct",
+    maxItems: 15,
+  },
+  {
+    name: "eSchool News",
+    url: "https://www.eschoolnews.com/feed/",
+    category: "디지털교육",
+    sourceType: "direct",
+    maxItems: 15,
+  },
+  {
+    name: "K-12 Dive",
+    url: "https://www.k12dive.com/feeds/news/",
+    category: "교육정책",
+    sourceType: "direct",
+    maxItems: 15,
+  },
+];
+
+const googleNewsFeeds: FeedConfig[] = [
   {
     name: "교육부 공식 뉴스",
     url: googleNewsSearchUrl('site:moe.go.kr 보도자료 교육부 "AI 디지털교과서" OR 인공지능교육'),
     category: "교육정책",
+    sourceType: "google_news",
   },
   {
     name: "KERIS 공식 뉴스",
     url: googleNewsSearchUrl("site:keris.or.kr 보도자료 AI교육 OR 디지털교육 OR 에듀테크 OR 교육데이터"),
     category: "디지털교육",
+    sourceType: "google_news",
   },
   {
     name: "OECD Education",
     url: googleNewsSearchUrl("site:oecd.org education AI OR digital learning OR schools", "en"),
     category: "교육정책",
+    sourceType: "google_news",
   },
   {
     name: "UNESCO Education",
     url: googleNewsSearchUrl("site:unesco.org education AI OR digital learning OR schools", "en"),
     category: "교육정책",
+    sourceType: "google_news",
   },
   {
     name: "EdSurge",
     url: googleNewsSearchUrl("site:edsurge.com AI education OR edtech OR K-12", "en"),
     category: "AI교육",
+    sourceType: "google_news",
   },
   {
     name: "Education Week",
     url: googleNewsSearchUrl("site:edweek.org AI education OR edtech OR K-12", "en"),
     category: "AI교육",
+    sourceType: "google_news",
   },
   {
     name: "eSchool News",
     url: googleNewsSearchUrl("site:eschoolnews.com AI education OR edtech OR classroom", "en"),
     category: "디지털교육",
+    sourceType: "google_news",
   },
   {
     name: "EdTech Magazine",
     url: googleNewsSearchUrl("site:edtechmagazine.com K-12 AI OR edtech OR classroom", "en"),
     category: "디지털교육",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 교육",
     url: "https://news.google.com/rss/search?q=%EA%B5%90%EC%9C%A1&hl=ko&gl=KR&ceid=KR:ko",
     category: "기타",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - AI교육",
     url: "https://news.google.com/rss/search?q=AI%EA%B5%90%EC%9C%A1&hl=ko&gl=KR&ceid=KR:ko",
     category: "AI교육",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 디지털교육",
     url: "https://news.google.com/rss/search?q=%EB%94%94%EC%A7%80%ED%84%B8%EA%B5%90%EC%9C%A1&hl=ko&gl=KR&ceid=KR:ko",
     category: "디지털교육",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 생활지도",
     url: "https://news.google.com/rss/search?q=%EC%83%9D%ED%99%9C%EC%A7%80%EB%8F%84+%ED%95%99%EA%B5%90&hl=ko&gl=KR&ceid=KR:ko",
     category: "생활지도",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 교육평가",
     url: "https://news.google.com/rss/search?q=%EA%B5%90%EC%9C%A1%ED%8F%89%EA%B0%80+%ED%95%99%EA%B5%90&hl=ko&gl=KR&ceid=KR:ko",
     category: "평가",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 교육",
     url: "https://news.google.com/rss/search?q=%22K-12+education%22+OR+%22elementary+school%22+OR+%22primary+school%22&hl=en-US&gl=US&ceid=US:en",
     category: "기타",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 AI교육",
     url: "https://news.google.com/rss/search?q=%22AI+in+schools%22+OR+%22AI+education%22+OR+%22artificial+intelligence+classroom%22&hl=en-US&gl=US&ceid=US:en",
     category: "AI교육",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 교육정책",
     url: "https://news.google.com/rss/search?q=%22school+policy%22+OR+%22education+policy%22+OECD+OR+UNESCO&hl=en-US&gl=US&ceid=US:en",
     category: "교육정책",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 디지털교육",
     url: "https://news.google.com/rss/search?q=%22digital+learning%22+school+OR+%22edtech%22+classroom&hl=en-US&gl=US&ceid=US:en",
     category: "디지털교육",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 학생지원",
     url: "https://news.google.com/rss/search?q=%22student+wellbeing%22+school+OR+%22school+discipline%22+OR+%22student+mental+health%22&hl=en-US&gl=US&ceid=US:en",
     category: "생활지도",
+    sourceType: "google_news",
   },
   {
     name: "Google 뉴스 - 국제 교육평가",
     url: "https://news.google.com/rss/search?q=%22student+assessment%22+school+OR+%22learning+assessment%22+OR+%22standardized+testing%22&hl=en-US&gl=US&ceid=US:en",
     category: "평가",
+    sourceType: "google_news",
   },
 ];
+
+const defaultFeeds: FeedConfig[] = [...directFeeds, ...googleNewsFeeds];
 
 function getFeedConfigs() {
   const raw = process.env.NEWS_RSS_FEEDS;
@@ -156,7 +218,7 @@ function getFeedConfigs() {
       .split(",")
       .map((url) => url.trim())
       .filter(Boolean)
-      .map((url) => ({ name: new URL(url).hostname, url, category: "기타" as const }));
+      .map((url) => ({ name: new URL(url).hostname, url, category: "기타" as const, sourceType: "custom" as const }));
   }
 
   return defaultFeeds;
@@ -222,8 +284,9 @@ async function fetchFeedXml(url: string) {
 async function collectFeed(feed: FeedConfig) {
   const xml = await fetchFeedXml(feed.url);
   const parsed = await parser.parseString(xml);
+  const itemLimit = feed.maxItems ?? maxItemsPerFeed;
 
-  return parsed.items.slice(0, maxItemsPerFeed).flatMap((item) => {
+  return parsed.items.slice(0, itemLimit).flatMap((item) => {
     const url = item.link?.trim();
     const title = item.title?.trim();
 
