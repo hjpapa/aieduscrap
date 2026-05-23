@@ -2,6 +2,7 @@ import { inferNewsCategory, newsCategories } from "./categories";
 import { getKstDayRange } from "./date";
 import { getDisplayTitle } from "./newsDisplay";
 import { getSupabaseAdmin } from "./supabase";
+import { getTrustedSourceScore } from "./trustedSources";
 import type { AgentPeriod, EducationNews, Importance } from "./types";
 
 const periodDays: Record<AgentPeriod, number> = {
@@ -64,7 +65,7 @@ function isAiTrendQuery(message: string) {
 function scoreNews(item: EducationNews, message: string, tokens: string[]) {
   const text = textOf(item);
   const category = inferNewsCategory(item.title, item.category);
-  let score = item.importance ? importanceScore[item.importance] : 10;
+  let score = (item.importance ? importanceScore[item.importance] : 10) + getTrustedSourceScore(item);
 
   for (const token of tokens) {
     if (getDisplayTitle(item).toLowerCase().includes(token) || item.title.toLowerCase().includes(token)) {

@@ -1,4 +1,5 @@
 import { roleLabels, roleSystemPrompts } from "./rolePrompts";
+import { getTrustedSourceLabel } from "./trustedSources";
 import type { EducationNews, OutputType, RoleType } from "./types";
 
 export const outputTypeLabels: Record<OutputType, string> = {
@@ -21,6 +22,7 @@ function newsBlock(news: EducationNews[]) {
       (item, index) => `${index + 1}. ${item.title}
 한국어 제목: ${item.translated_title ?? "없음"}
 출처: ${item.source}
+신뢰 출처 유형: ${getTrustedSourceLabel(item) ?? "일반"}
 URL: ${item.url}
 발행일: ${item.published_at}
 카테고리: ${item.category ?? "기타"}
@@ -48,6 +50,7 @@ export function transformPrompt(outputType: OutputType, roleType: RoleType, news
     "- 확인되지 않은 사실을 단정하지 않는다.",
     "- 근거가 되는 뉴스의 제목, 출처, URL을 반드시 포함한다.",
     "- '뉴스에 근거한 내용'과 'AI 해석/제안'을 구분한다.",
+    "- 공식 기관, 국제기구, 전문 교육매체의 뉴스는 우선 참고하되 원문 확인 필요성을 함께 남긴다.",
     "",
     "산출물 형식:",
     outputType === "report_summary" ? "- 핵심 요약, 학교 영향, 검토 필요사항, 참고 뉴스 순서로 작성한다." : "",

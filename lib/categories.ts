@@ -35,6 +35,10 @@ export function inferNewsCategory(title: string, fallback?: string | null): News
       "gemini",
       "ai활용",
       "ai교과서",
+      "aieducation",
+      "aiinschools",
+      "artificialintelligence",
+      "machinelearning",
     ])
   ) {
     return "AI교육";
@@ -53,6 +57,10 @@ export function inferNewsCategory(title: string, fallback?: string | null): News
       "sw교육",
       "정보교육",
       "디지털역량",
+      "digitallearning",
+      "edtech",
+      "onlinelearning",
+      "classroomtechnology",
     ])
   ) {
     return "디지털교육";
@@ -71,6 +79,9 @@ export function inferNewsCategory(title: string, fallback?: string | null): News
       "마음건강",
       "인성교육",
       "출결",
+      "studentwellbeing",
+      "studentmentalhealth",
+      "schooldiscipline",
     ])
   ) {
     return "생활지도";
@@ -88,6 +99,9 @@ export function inferNewsCategory(title: string, fallback?: string | null): News
       "내신",
       "성취도",
       "기초학력",
+      "studentassessment",
+      "learningassessment",
+      "standardizedtesting",
     ])
   ) {
     return "평가";
@@ -107,6 +121,10 @@ export function inferNewsCategory(title: string, fallback?: string | null): News
       "늘봄",
       "유보통합",
       "교원",
+      "educationpolicy",
+      "schoolpolicy",
+      "oecd",
+      "unesco",
     ])
   ) {
     return "교육정책";

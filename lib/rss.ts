@@ -20,11 +20,60 @@ const configuredMaxItemsPerFeed = Number(process.env.NEWS_MAX_ITEMS_PER_FEED ?? 
 const maxItemsPerFeed =
   Number.isFinite(configuredMaxItemsPerFeed) && configuredMaxItemsPerFeed > 0 ? configuredMaxItemsPerFeed : 30;
 
+function googleNewsSearchUrl(query: string, locale: "ko" | "en" = "ko") {
+  const params =
+    locale === "ko"
+      ? { hl: "ko", gl: "KR", ceid: "KR:ko" }
+      : { hl: "en-US", gl: "US", ceid: "US:en" };
+
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${params.hl}&gl=${params.gl}&ceid=${params.ceid}`;
+}
+
 const defaultFeeds: FeedConfig[] = [
   {
     name: "교육부 정책브리핑",
     url: "https://www.korea.kr/rss/dept_moe.xml",
     category: "교육정책",
+  },
+  {
+    name: "교육부 공식 뉴스",
+    url: googleNewsSearchUrl("site:moe.go.kr 교육 OR 인공지능 OR 디지털교육"),
+    category: "교육정책",
+  },
+  {
+    name: "KERIS 공식 뉴스",
+    url: googleNewsSearchUrl("site:keris.or.kr AI교육 OR 디지털교육 OR 에듀테크 OR 교육데이터"),
+    category: "디지털교육",
+  },
+  {
+    name: "OECD Education",
+    url: googleNewsSearchUrl("site:oecd.org education AI OR digital learning OR schools", "en"),
+    category: "교육정책",
+  },
+  {
+    name: "UNESCO Education",
+    url: googleNewsSearchUrl("site:unesco.org education AI OR digital learning OR schools", "en"),
+    category: "교육정책",
+  },
+  {
+    name: "EdSurge",
+    url: googleNewsSearchUrl("site:edsurge.com AI education OR edtech OR K-12", "en"),
+    category: "AI교육",
+  },
+  {
+    name: "Education Week",
+    url: googleNewsSearchUrl("site:edweek.org AI education OR edtech OR K-12", "en"),
+    category: "AI교육",
+  },
+  {
+    name: "eSchool News",
+    url: googleNewsSearchUrl("site:eschoolnews.com AI education OR edtech OR classroom", "en"),
+    category: "디지털교육",
+  },
+  {
+    name: "EdTech Magazine",
+    url: googleNewsSearchUrl("site:edtechmagazine.com K-12 AI OR edtech OR classroom", "en"),
+    category: "디지털교육",
   },
   {
     name: "Google 뉴스 - 교육",
@@ -118,6 +167,26 @@ function toIsoDate(value?: string) {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
+function extractItemSource(item: Parser.Item, fallback: string) {
+  const rawSource = (item as Parser.Item & { source?: unknown }).source;
+
+  if (typeof rawSource === "string" && rawSource.trim()) {
+    return rawSource.trim();
+  }
+
+  if (rawSource && typeof rawSource === "object") {
+    const source = rawSource as Record<string, unknown>;
+    const candidates = [source["#"], source._, source.title, source.name];
+    const text = candidates.find((candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0);
+
+    if (text) {
+      return text.trim();
+    }
+  }
+
+  return fallback;
+}
+
 async function fetchFeedXml(url: string) {
   let lastError: unknown;
 
@@ -161,7 +230,7 @@ async function collectFeed(feed: FeedConfig) {
     return [
       {
         title,
-        source: feed.name,
+        source: extractItemSource(item, feed.name),
         url,
         published_at: toIsoDate(item.isoDate ?? item.pubDate),
         category: inferNewsCategory(title, feed.category),

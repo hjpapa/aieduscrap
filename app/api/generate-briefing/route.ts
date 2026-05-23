@@ -4,6 +4,7 @@ import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 import { batchNewsInsightPrompt, dailyBriefingPrompt } from "@/lib/prompts";
 import { getKstDayRange } from "@/lib/date";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getTrustedSourceScore } from "@/lib/trustedSources";
 import type { EducationNews } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,16 @@ function isMissingTranslatedTitleColumn(error: unknown) {
     typeof error.message === "string" &&
     /translated_title|column/i.test(error.message)
   );
+}
+
+function sortForAnalysis(a: EducationNews, b: EducationNews) {
+  const trustedDiff = getTrustedSourceScore(b) - getTrustedSourceScore(a);
+
+  if (trustedDiff !== 0) {
+    return trustedDiff;
+  }
+
+  return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
 }
 
 async function updateNewsInsight(supabase: ReturnType<typeof getSupabaseAdmin>, item: EducationNews, update: Partial<EducationNews>) {
@@ -62,13 +73,13 @@ export async function GET(request: Request) {
     .gte("published_at", start)
     .lt("published_at", end)
     .order("published_at", { ascending: false })
-    .limit(30);
+    .limit(80);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const news = (data ?? []) as EducationNews[];
+  const news = ((data ?? []) as EducationNews[]).sort(sortForAnalysis).slice(0, 40);
   const processed: EducationNews[] = [];
   const errors: Array<{ id: string; title: string; message: string }> = [];
   const unanalyzed = news.filter(

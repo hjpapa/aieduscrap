@@ -48,6 +48,8 @@ Gemini만 사용할 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL
 
 기본 RSS 피드는 국내 교육 뉴스와 국제 교육 뉴스를 함께 수집합니다. 국제 피드는 영어권 Google News RSS를 활용해 K-12, elementary school, primary school, classroom, student wellbeing, assessment 중심의 교육 뉴스를 보강합니다. 국제 뉴스 제목은 AI 분석 단계에서 `translated_title`에 한국어 번역 제목으로 저장되고, 화면에서는 한국어 제목을 우선 표시합니다.
 
+신뢰 출처 우선순위도 적용되어 있습니다. 교육부, KERIS, OECD, UNESCO 같은 공식 기관/국제기구와 EdSurge, Education Week, eSchool News, EdTech Magazine 같은 주요 해외 교육기술 매체를 별도 피드로 먼저 수집하고, 화면 정렬과 에이전트 검색에서도 우선 참고하도록 구성했습니다. Google News RSS의 실제 매체명도 함께 읽어 `source`에 반영합니다.
+
 `NEWS_MAX_ITEMS_PER_FEED`는 각 RSS 피드에서 가져올 최대 기사 수입니다. 기본값은 `30`이며, Vercel 함수 실행 시간이 길어지면 `15` 또는 `20`으로 줄일 수 있습니다.
 
 ## Supabase SQL

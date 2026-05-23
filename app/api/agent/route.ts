@@ -3,6 +3,7 @@ import { generateText, getAIProvider } from "@/lib/ai";
 import { roleLabels, normalizeRoleType, roleSystemPrompts } from "@/lib/rolePrompts";
 import { normalizePeriod, searchNews } from "@/lib/searchNews";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getTrustedSourceLabel } from "@/lib/trustedSources";
 import type { EducationNews, NewsReference } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ function buildAgentPrompt({
       item.translated_title ? `한국어 제목: ${item.translated_title}` : null,
       `id: ${item.id}`,
       `출처: ${item.source}`,
+      getTrustedSourceLabel(item) ? `신뢰 출처 유형: ${getTrustedSourceLabel(item)}` : null,
       `URL: ${item.url}`,
       `발행일: ${item.published_at}`,
       `카테고리: ${item.category ?? "기타"}`,
@@ -72,6 +74,7 @@ function buildAgentPrompt({
     "- 기사 전문은 저장되어 있지 않으므로 제목, 출처, URL, 발행일, AI 요약/통찰 범위 안에서만 말한다.",
     "- 확인되지 않은 사실은 단정하지 말고 '저장된 뉴스 기준으로는', '추가 확인이 필요합니다'처럼 표현한다.",
     "- '뉴스에 근거한 내용'과 'AI 해석/제안'을 구분한다.",
+    "- 공식 기관, 국제기구, 전문 교육매체의 뉴스가 있으면 우선 참고하되, 다른 뉴스와 충돌할 때는 단정하지 않는다.",
     "- Markdown 문서를 만들지 않는다.",
     "- 반드시 JSON만 반환한다.",
     "- 답변은 프론트엔드 카드 UI에서 표시할 수 있도록 짧은 문장 단위로 구조화한다.",

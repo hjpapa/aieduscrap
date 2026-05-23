@@ -5,6 +5,7 @@ import { getKstDayRange } from "@/lib/date";
 import { dedupeNewsForDisplay } from "@/lib/dedupe";
 import { getDisplayTitle, hasTranslatedTitle } from "@/lib/newsDisplay";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getTrustedSourceLabel, getTrustedSourceScore } from "@/lib/trustedSources";
 import type { DailyBriefing, EducationNews, Importance, NewsCategory } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -45,9 +46,15 @@ function formatBriefingDate(value: string) {
 function sortNews(a: EducationNews, b: EducationNews) {
   const aImportance = a.importance ? importanceRank[a.importance] : 0;
   const bImportance = b.importance ? importanceRank[b.importance] : 0;
+  const aTrusted = getTrustedSourceScore(a);
+  const bTrusted = getTrustedSourceScore(b);
 
   if (aImportance !== bImportance) {
     return bImportance - aImportance;
+  }
+
+  if (aTrusted !== bTrusted) {
+    return bTrusted - aTrusted;
   }
 
   return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
@@ -153,6 +160,9 @@ function TodayBriefingCard({
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
                 <span className="rounded-full bg-white px-2.5 py-1 text-emerald-800">{index + 1}</span>
                 <span>{inferNewsCategory(item.title, item.category)}</span>
+                {getTrustedSourceLabel(item) ? (
+                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">{getTrustedSourceLabel(item)}</span>
+                ) : null}
                 <span>·</span>
                 <span>{item.source}</span>
                 <span>·</span>
@@ -215,6 +225,9 @@ function AiTrendRadar({ items }: { items: EducationNews[] }) {
                 <span className="rounded-full bg-white px-2.5 py-1 text-emerald-800">
                   {inferNewsCategory(item.title, item.category)}
                 </span>
+                {getTrustedSourceLabel(item) ? (
+                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">{getTrustedSourceLabel(item)}</span>
+                ) : null}
                 <span>{item.source}</span>
                 <span>·</span>
                 <time dateTime={item.published_at}>{formatDate(item.published_at)}</time>
@@ -257,6 +270,7 @@ function AiTrendRadar({ items }: { items: EducationNews[] }) {
 function NewsCard({ item, featured = false }: { item: EducationNews; featured?: boolean }) {
   const category = inferNewsCategory(item.title, item.category);
   const importance = item.importance ?? "medium";
+  const trustedSourceLabel = getTrustedSourceLabel(item);
 
   return (
     <article
@@ -268,6 +282,7 @@ function NewsCard({ item, featured = false }: { item: EducationNews; featured?: 
       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">{category}</span>
         <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">중요도 {importanceLabel[importance]}</span>
+        {trustedSourceLabel ? <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">{trustedSourceLabel}</span> : null}
         <span className="text-stone-400">{item.source}</span>
         <span className="text-stone-300">·</span>
         <time className="text-stone-400" dateTime={item.published_at}>
