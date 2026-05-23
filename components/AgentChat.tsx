@@ -90,17 +90,17 @@ export default function AgentChat() {
   }
 
   return (
-    <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold text-emerald-800">AGENT CHAT</p>
-          <h2 className="mt-1 text-2xl font-black text-stone-950">교육 뉴스에 질문하기</h2>
+          <h2 className="mt-1 text-xl font-black text-stone-950">교육 뉴스에 질문하기</h2>
         </div>
         <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">저장 뉴스 기반</span>
       </div>
 
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3">
           <label className="grid gap-1 text-sm font-bold text-stone-700">
             분석 관점
             <select
@@ -135,17 +135,17 @@ export default function AgentChat() {
         <label className="grid gap-2 text-sm font-bold text-stone-700">
           질문
           <textarea
-            className="min-h-28 resize-y rounded-md border border-stone-200 bg-white p-3 text-base leading-7 text-stone-800 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+            className="min-h-32 resize-y rounded-md border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-800 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
             onChange={(event) => setMessage(event.target.value)}
             placeholder="예: 최근 AI교육 뉴스 중 우리 학교가 준비해야 할 점을 담임교사 관점으로 정리해줘."
             value={message}
           />
         </label>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid gap-2">
           {starterQuestions.map((question) => (
             <button
-              className="rounded-full border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-left text-xs font-semibold leading-5 text-stone-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
               key={question}
               onClick={() => setMessage(question)}
               type="button"
@@ -155,9 +155,9 @@ export default function AgentChat() {
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex">
           <button
-            className="rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md bg-emerald-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={loading}
             type="submit"
           >
@@ -177,7 +177,7 @@ export default function AgentChat() {
                 <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-emerald-800">{response.provider}</span>
               ) : null}
             </div>
-            <div className="whitespace-pre-wrap text-sm leading-7 text-stone-700">{response.answer}</div>
+            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm leading-7 text-stone-700">{response.answer}</div>
           </article>
 
           <section className="grid gap-3">
