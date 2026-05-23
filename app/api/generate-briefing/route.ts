@@ -4,6 +4,7 @@ import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 import { batchNewsInsightPrompt, dailyBriefingPrompt } from "@/lib/prompts";
 import { getKstDayRange } from "@/lib/date";
 import { isFreshPublishedAt } from "@/lib/newsFreshness";
+import { getDisplayTitle } from "@/lib/newsDisplay";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTrustedSourceScore } from "@/lib/trustedSources";
 import type { EducationNews } from "@/lib/types";
@@ -15,6 +16,29 @@ async function generateDailyBriefing(news: EducationNews[]) {
   return generateText(dailyBriefingPrompt(news), {
     temperature: 0.3,
   });
+}
+
+function fallbackDailyBriefing(news: EducationNews[], date: string) {
+  const lines = news.slice(0, 10).map((item, index) =>
+    [
+      `### ${index + 1}. ${getDisplayTitle(item)}`,
+      `- 출처: ${item.source}`,
+      `- 카테고리: ${item.category ?? "기타"}`,
+      `- 사실 요약: ${item.summary ?? "AI 요약이 아직 생성되지 않았습니다."}`,
+      `- 교사 관점: ${item.teacher_insight ?? "교사 관점 통찰이 아직 생성되지 않았습니다."}`,
+      `- 학교 적용: ${item.school_action ?? "학교 적용 아이디어가 아직 생성되지 않았습니다."}`,
+      `- 원문: ${item.url}`,
+    ].join("\n"),
+  );
+
+  return [
+    `# ${date} 교육 뉴스 브리핑`,
+    "",
+    "AI 일일 브리핑 생성 요청이 일시적으로 제한되어, 저장된 뉴스 분석 결과를 바탕으로 임시 브리핑을 구성했습니다.",
+    "세부 내용은 원문 링크로 확인해주세요.",
+    "",
+    ...lines,
+  ].join("\n\n");
 }
 
 function needsTranslatedTitle(item: EducationNews) {
@@ -161,6 +185,17 @@ export async function GET(request: Request) {
   if (processed.length > 0) {
     try {
       briefingContent = await generateDailyBriefing(processed);
+    } catch (error) {
+      briefingErrorMessage = error instanceof Error ? error.message : "Unknown briefing error";
+      errors.push({
+        id: "daily_briefing",
+        title: `${date} 교육 뉴스 브리핑`,
+        message: briefingErrorMessage,
+      });
+      briefingContent = fallbackDailyBriefing(processed, date);
+    }
+
+    try {
       const { data: briefing, error: briefingError } = await supabase
         .from("daily_briefings")
         .upsert(
@@ -180,11 +215,11 @@ export async function GET(request: Request) {
 
       briefingId = briefing.id;
     } catch (error) {
-      briefingErrorMessage = error instanceof Error ? error.message : "Unknown briefing error";
+      const message = error instanceof Error ? error.message : "Unknown briefing save error";
       errors.push({
-        id: "daily_briefing",
-        title: `${date} 교육 뉴스 브리핑`,
-        message: briefingErrorMessage,
+        id: "daily_briefing_save",
+        title: `${date} 교육 뉴스 브리핑 저장`,
+        message,
       });
     }
   }
