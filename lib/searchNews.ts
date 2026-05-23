@@ -17,6 +17,10 @@ const importanceScore: Record<Importance, number> = {
   low: 6,
 };
 
+const aiEducationPattern =
+  /ai|인공지능|생성형|챗gpt|chatgpt|gemini|디지털교과서|에듀테크|edtech|artificial intelligence|machine learning/i;
+const trendPattern = /동향|흐름|변화|trend|확산|도입|준비|전략|정책/i;
+
 export function normalizePeriod(value: unknown): AgentPeriod {
   return ["today", "3d", "1w", "1m"].includes(String(value)) ? (value as AgentPeriod) : "today";
 }
@@ -53,6 +57,10 @@ function textOf(item: EducationNews) {
     .toLowerCase();
 }
 
+function isAiTrendQuery(message: string) {
+  return aiEducationPattern.test(message) || (trendPattern.test(message) && /교육|school|classroom/i.test(message));
+}
+
 function scoreNews(item: EducationNews, message: string, tokens: string[]) {
   const text = textOf(item);
   const category = inferNewsCategory(item.title, item.category);
@@ -68,6 +76,20 @@ function scoreNews(item: EducationNews, message: string, tokens: string[]) {
 
   if (newsCategories.some((candidate) => message.includes(candidate)) && message.includes(category)) {
     score += 18;
+  }
+
+  if (isAiTrendQuery(message)) {
+    if (category === "AI교육") {
+      score += 28;
+    }
+
+    if (aiEducationPattern.test(text)) {
+      score += 18;
+    }
+
+    if (trendPattern.test(text)) {
+      score += 6;
+    }
   }
 
   return score;
