@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AgentChat from "@/components/AgentChat";
 import { inferNewsCategory, newsCategories, normalizeCategory } from "@/lib/categories";
 import { getKstDayRange } from "@/lib/date";
 import { dedupeNewsForDisplay } from "@/lib/dedupe";
@@ -295,6 +296,8 @@ export default async function Home({
       {!error ? (
         <div className="grid gap-6">
           <TodayBriefingCard briefing={briefing} briefingDate={briefingDate} majorNews={majorNews} />
+
+          <AgentChat />
 
           <section className="sticky top-0 z-10 -mx-4 grid scroll-mt-4 gap-3 border-y border-stone-200 bg-[#f6f4ee]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" id="news-list">
             <div className="flex flex-wrap items-end justify-between gap-3">

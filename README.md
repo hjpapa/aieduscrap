@@ -1,14 +1,21 @@
 # 교육 뉴스 인사이트 에이전트
 
-Next.js App Router와 Tailwind CSS 기반 1차 버전입니다. 교육 관련 RSS 또는 보도자료 메타데이터를 수집하고, 기사 전문을 저장하지 않은 상태에서 OpenAI API 또는 Gemini API로 요약과 초등교사 관점 인사이트를 생성해 Supabase에 저장합니다.
+Next.js App Router, TypeScript, Tailwind CSS, Supabase, Gemini/OpenAI API, rss-parser, Vercel Cron 기반의 교육 뉴스 브리핑 도구입니다.
 
-## 주요 흐름
+현재 버전은 3차 버전인 **대화형 교육 뉴스 인사이트 에이전트**입니다. 매일 교육 뉴스를 수집하고, 초등교사 관점의 요약과 통찰을 저장한 뒤, 저장된 뉴스 데이터를 근거로 사용자가 질문할 수 있습니다.
 
-1. `/api/collect-news`가 RSS 피드에서 `title`, `source`, `url`, `published_at`, `category`만 수집합니다.
-2. `education_news.url` unique 제약으로 중복 URL 저장을 방지합니다.
-3. `/api/generate-briefing`이 오늘 수집된 뉴스별로 `category`, `summary`, `teacher_insight`, `school_action`, `importance`를 생성합니다.
-4. 같은 API가 오늘의 통합 브리핑을 `daily_briefings`에 저장합니다.
-5. `/` 메인 페이지가 오늘 브리핑, 중요도 높은 뉴스 5개, 카테고리 필터, 전체 뉴스 카드를 보여줍니다.
+## 주요 기능
+
+1. RSS 또는 뉴스 피드에서 교육 뉴스 메타데이터를 수집합니다.
+2. 기사 전문은 저장하지 않고 제목, 출처, URL, 발행일만 저장합니다.
+3. 중복 URL은 저장하지 않습니다.
+4. AI가 뉴스별 사실 요약, 초등교사 관점 통찰, 학교 적용 아이디어, 중요도를 생성합니다.
+5. Supabase에 뉴스 분석 결과와 일일 브리핑을 저장합니다.
+6. 메인 페이지에서 오늘의 교육 뉴스 브리핑과 중요 뉴스 5개를 보여줍니다.
+7. 사용자는 저장된 뉴스 데이터를 바탕으로 질문할 수 있습니다.
+8. 답변은 참고한 뉴스의 제목, 출처, URL을 함께 제공합니다.
+9. 답변에 사용된 뉴스를 보고용 요약, 교직원 연수 도입부, 수업 아이디어, 학부모 안내문, 체크리스트로 변환할 수 있습니다.
+10. Vercel Cron으로 매일 한국 시간 오전 7시에 자동 실행할 수 있습니다.
 
 ## 설치
 
@@ -18,47 +25,29 @@ npm install
 
 ## 환경변수
 
-`.env.example`을 참고해 `.env.local`을 설정합니다.
+`.env.example`을 참고해 `.env.local`을 만듭니다.
 
 ```bash
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
-AI_PROVIDER=openai
+
+AI_PROVIDER=gemini
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash-lite
+
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 CRON_SECRET=
 NEWS_RSS_FEEDS=
 ```
 
-Gemini를 쓰려면 Google AI Studio에서 API 키를 만든 뒤 다음처럼 설정합니다.
+Gemini만 사용할 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`이 필요합니다. OpenAI를 사용하지 않으면 `OPENAI_API_KEY`는 비워도 됩니다.
 
-```bash
-AI_PROVIDER=gemini
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash-lite
-```
-
-`GEMINI_API_KEY`는 채팅이나 GitHub에 올리지 말고 `.env.local` 또는 Vercel 환경변수에만 저장하세요.
-
-`NEWS_RSS_FEEDS`는 JSON 배열을 권장합니다.
-
-```json
-[
-  {
-    "name": "교육부 보도자료",
-    "url": "https://example.com/rss.xml",
-    "category": "교육정책"
-  }
-]
-```
-
-기본 피드는 대한민국 정책브리핑의 교육부 RSS(`https://www.korea.kr/rss/dept_moe.xml`)입니다. RSS가 아닌 일반 HTML 목록 페이지는 `rss-parser`로 안정적으로 파싱되지 않을 수 있으므로, 실제 운영에서는 각 기관의 RSS URL 또는 RSS 변환 엔드포인트를 등록하세요.
+`SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 키입니다. 브라우저에 노출되는 `NEXT_PUBLIC_` 변수로 만들지 마세요.
 
 ## Supabase SQL
 
-Supabase SQL Editor에서 실행합니다.
+Supabase 프로젝트의 SQL Editor에서 아래 SQL을 실행하세요.
 
 ```sql
 create extension if not exists "pgcrypto";
@@ -87,14 +76,38 @@ create table if not exists daily_briefings (
   content text not null,
   created_at timestamptz not null default now()
 );
-```
 
-이 앱은 서버 전용 `SUPABASE_SERVICE_ROLE_KEY`를 사용합니다. 브라우저로 노출되는 `NEXT_PUBLIC_` 키를 쓰지 않습니다.
+create table if not exists agent_conversations (
+  id uuid primary key default gen_random_uuid(),
+  message text not null,
+  role_type text not null check (
+    role_type in ('homeroom_teacher', 'it_lead', 'research_lead', 'administrator', 'trainer')
+  ),
+  period text not null check (period in ('today', '3d', '1w', '1m')),
+  answer text not null,
+  referenced_news_ids uuid[] not null default '{}',
+  created_at timestamptz not null default now()
+);
 
-메인 화면의 카테고리 필터는 다음 6개 값을 기준으로 동작합니다.
+create index if not exists agent_conversations_created_at_idx
+  on agent_conversations (created_at desc);
 
-```text
-AI교육, 교육정책, 디지털교육, 생활지도, 평가, 기타
+create table if not exists generated_outputs (
+  id uuid primary key default gen_random_uuid(),
+  output_type text not null check (
+    output_type in ('report_summary', 'training_intro', 'lesson_idea', 'parent_notice', 'checklist')
+  ),
+  role_type text not null check (
+    role_type in ('homeroom_teacher', 'it_lead', 'research_lead', 'administrator', 'trainer')
+  ),
+  news_ids uuid[] not null default '{}',
+  title text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists generated_outputs_created_at_idx
+  on generated_outputs (created_at desc);
 ```
 
 ## 로컬 실행
@@ -103,22 +116,10 @@ AI교육, 교육정책, 디지털교육, 생활지도, 평가, 기타
 npm run dev
 ```
 
-수집 실행:
+뉴스 수집:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/collect-news
-```
-
-오늘 수집분의 유사 제목 중복 후보 확인:
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/dedupe-news?dryRun=true"
-```
-
-오늘 수집분의 유사 제목 중복 삭제:
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/dedupe-news?dryRun=false"
 ```
 
 브리핑 생성:
@@ -127,25 +128,61 @@ curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3000/api/dedupe-n
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/generate-briefing
 ```
 
-매일 실행되는 전체 작업을 로컬에서 확인하려면 다음처럼 호출합니다.
+수집과 브리핑을 한 번에 실행:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/daily-cron
 ```
 
-## Vercel 배포
+## 대화형 에이전트 API
 
-Vercel Git 연동을 쓰는 경우 GitHub에 푸시하면 자동 배포할 수 있습니다. CLI로 배포하려면 다음 순서로 진행합니다.
+`POST /api/agent`
 
-```bash
-npm i -g vercel
-vercel login
-vercel link
+```json
+{
+  "message": "최근 AI교육 뉴스 중 우리 학교가 준비해야 할 점은?",
+  "roleType": "homeroom_teacher",
+  "period": "1w"
+}
 ```
 
-그다음 Vercel Dashboard에서 Project Settings → Environment Variables에 `.env.local`과 같은 값을 등록합니다. 비밀키는 채팅, GitHub, 브라우저 화면에 노출하지 마세요.
+지원하는 `roleType`:
 
-Vercel Project Settings → Environment Variables에 다음 값을 Production 환경으로 등록합니다.
+```text
+homeroom_teacher, it_lead, research_lead, administrator, trainer
+```
+
+지원하는 `period`:
+
+```text
+today, 3d, 1w, 1m
+```
+
+응답에는 `answer`, `references`, `provider`가 포함됩니다. `references`는 참고한 뉴스의 제목, 출처, URL을 포함합니다.
+
+## 산출물 변환 API
+
+`POST /api/transform`
+
+```json
+{
+  "outputType": "checklist",
+  "newsIds": ["education_news id"],
+  "roleType": "administrator"
+}
+```
+
+지원하는 `outputType`:
+
+```text
+report_summary, training_intro, lesson_idea, parent_notice, checklist
+```
+
+`newsIds`를 보내면 해당 뉴스를 기반으로 생성합니다. `newsIds`를 비우면 최근 1주일 뉴스 중 중요도 높은 뉴스를 기반으로 생성합니다.
+
+## Vercel 배포
+
+Vercel 프로젝트 Settings -> Environment Variables에 아래 값을 등록하세요.
 
 ```text
 SUPABASE_URL
@@ -159,33 +196,34 @@ CRON_SECRET
 NEWS_RSS_FEEDS
 ```
 
-Gemini만 쓸 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`만 있으면 됩니다. OpenAI를 쓰지 않으면 `OPENAI_API_KEY`는 비워도 됩니다.
+환경변수를 바꾼 뒤에는 Production Deployment를 다시 배포해야 합니다.
 
-`CRON_SECRET`은 16자 이상의 임의 문자열을 사용하세요. Vercel Cron은 이 값을 `Authorization: Bearer <CRON_SECRET>` 헤더로 자동 전송하며, 앱의 Cron API는 이 헤더를 검증합니다.
+`vercel.json`에는 한국 시간 오전 7시에 실행되도록 Vercel Cron이 UTC 기준 전날 22:00으로 설정되어 있습니다.
 
-현재 Cron은 UTC 기준으로 실행됩니다. 한국 시간 오전 7시는 전날 22:00 UTC입니다.
-
-- `0 22 * * *`: 매일 22:00 UTC에 `/api/daily-cron` 실행
-
-`/api/daily-cron`은 내부에서 `/api/collect-news`를 먼저 실행한 뒤 `/api/generate-briefing`을 실행합니다.
-
-환경변수 등록 후 Production 배포를 실행합니다.
-
-```bash
-vercel deploy --prod
+```json
+{
+  "crons": [
+    {
+      "path": "/api/daily-cron",
+      "schedule": "0 22 * * *"
+    }
+  ]
+}
 ```
 
-배포 후 Vercel Dashboard → Settings → Cron Jobs에서 `/api/daily-cron`이 `0 22 * * *`로 등록되었는지 확인하세요. Cron Jobs는 Production Deployment에서 실행됩니다.
+`/api/daily-cron`은 내부에서 `/api/collect-news`를 먼저 실행한 뒤 `/api/generate-briefing`을 실행합니다. API routes는 `Authorization: Bearer <CRON_SECRET>` 헤더를 검증합니다.
 
-## 운영 주의사항
+## 운영 원칙
 
-- 기사 전문을 저장하지 않습니다.
-- 원문 URL은 모든 뉴스 항목에 유지합니다.
-- AI 생성 결과는 사실 요약(`summary`)과 교사 관점 해석(`teacher_insight`)을 분리합니다.
-- 피드별 오류, 항목별 생성 오류는 try/catch로 수집하고 전체 작업을 계속 진행합니다.
-- 운영 전 `NEWS_RSS_FEEDS`에 실제 RSS URL을 등록하세요.
+- 기사 전문을 저장하거나 출력하지 않습니다.
+- 원문 링크를 반드시 유지합니다.
+- AI 답변은 저장된 뉴스 데이터에 근거합니다.
+- 확인되지 않은 사실은 단정하지 않도록 프롬프트를 구성했습니다.
+- 사실 요약과 교사 관점 해석을 구분합니다.
+- 오류가 발생하면 전체 작업이 중단되지 않도록 API 단위로 예외를 처리합니다.
 
 ## 문제 해결
 
-- `/api/collect-news`에서 `read ECONNRESET`이 나오면 원격 RSS 서버가 연결을 끊은 상태입니다. 앱은 RSS 요청을 3회 재시도하고, 기본 대체 피드로 Google 뉴스 교육 RSS도 함께 조회합니다.
-- `/api/generate-briefing`에서 quota 또는 rate limit 오류가 나오면 선택한 AI provider의 크레딧, 결제, 사용량 한도를 확인한 뒤 다시 실행하세요.
+- 메인 화면에 오늘 브리핑이 없다면 `/api/daily-cron`이 아직 성공적으로 실행되지 않은 상태일 수 있습니다.
+- Vercel에서 `/api/collect-news`가 504로 실패하면 RSS 수집이 함수 제한 시간보다 오래 걸린 것입니다. 피드 수를 줄이거나 수집 작업을 나누는 방식으로 개선할 수 있습니다.
+- Gemini 또는 OpenAI에서 quota, rate limit, high demand 오류가 나오면 잠시 후 재시도하거나 더 가벼운 모델을 사용하세요.

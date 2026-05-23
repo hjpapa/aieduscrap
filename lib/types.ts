@@ -43,3 +43,11 @@ export type NewsInsight = {
 export type BatchNewsInsight = NewsInsight & {
   id: string;
 };
+
+export type RoleType = "homeroom_teacher" | "it_lead" | "research_lead" | "administrator" | "trainer";
+
+export type AgentPeriod = "today" | "3d" | "1w" | "1m";
+
+export type OutputType = "report_summary" | "training_intro" | "lesson_idea" | "parent_notice" | "checklist";
+
+export type NewsReference = Pick<EducationNews, "id" | "title" | "source" | "url" | "published_at" | "category" | "importance">;
