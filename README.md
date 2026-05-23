@@ -25,7 +25,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
 AI_PROVIDER=openai
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash-lite
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 CRON_SECRET=
@@ -37,7 +37,7 @@ Gemini를 쓰려면 Google AI Studio에서 API 키를 만든 뒤 다음처럼 �
 ```bash
 AI_PROVIDER=gemini
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash-lite
 ```
 
 `GEMINI_API_KEY`는 채팅이나 GitHub에 올리지 말고 `.env.local` 또는 Vercel 환경변수에만 저장하세요.
