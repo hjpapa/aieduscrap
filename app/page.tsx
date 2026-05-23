@@ -295,9 +295,11 @@ export default async function Home({
 
       {!error ? (
         <div className="grid gap-6">
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-            <TodayBriefingCard briefing={briefing} briefingDate={briefingDate} majorNews={majorNews} />
-            <aside className="lg:sticky lg:top-4">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
+            <div className="min-w-0">
+              <TodayBriefingCard briefing={briefing} briefingDate={briefingDate} majorNews={majorNews} />
+            </div>
+            <aside className="min-w-0 lg:sticky lg:top-4">
               <AgentChat />
             </aside>
           </div>

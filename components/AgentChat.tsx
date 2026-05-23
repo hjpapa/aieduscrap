@@ -90,7 +90,7 @@ export default function AgentChat() {
   }
 
   return (
-    <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+    <section className="min-w-0 overflow-hidden rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold text-emerald-800">AGENT CHAT</p>
@@ -104,7 +104,7 @@ export default function AgentChat() {
           <label className="grid gap-1 text-sm font-bold text-stone-700">
             분석 관점
             <select
-              className="h-11 rounded-md border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 w-full rounded-md border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               onChange={(event) => setRoleType(event.target.value as RoleType)}
               value={roleType}
             >
@@ -119,7 +119,7 @@ export default function AgentChat() {
           <label className="grid gap-1 text-sm font-bold text-stone-700">
             검색 기간
             <select
-              className="h-11 rounded-md border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 w-full rounded-md border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-800 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               onChange={(event) => setPeriod(event.target.value as AgentPeriod)}
               value={period}
             >
@@ -135,7 +135,7 @@ export default function AgentChat() {
         <label className="grid gap-2 text-sm font-bold text-stone-700">
           질문
           <textarea
-            className="min-h-32 resize-y rounded-md border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-800 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+            className="min-h-32 w-full resize-y rounded-md border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-800 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
             onChange={(event) => setMessage(event.target.value)}
             placeholder="예: 최근 AI교육 뉴스 중 우리 학교가 준비해야 할 점을 담임교사 관점으로 정리해줘."
             value={message}
@@ -169,31 +169,38 @@ export default function AgentChat() {
       {error ? <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
 
       {response ? (
-        <div className="mt-5 grid gap-5">
-          <article className="rounded-lg border border-stone-100 bg-stone-50 p-4">
+        <div className="mt-5 grid min-w-0 gap-4">
+          <article className="min-w-0 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-black text-stone-950">답변</h3>
+              <h3 className="text-base font-black text-stone-950">뉴스 근거 답변</h3>
               {response.provider ? (
                 <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-emerald-800">{response.provider}</span>
               ) : null}
             </div>
-            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm leading-7 text-stone-700">{response.answer}</div>
+            <div className="max-h-80 overflow-y-auto whitespace-pre-wrap pr-1 text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
+              {response.answer}
+            </div>
           </article>
 
-          <section className="grid gap-3">
-            <h3 className="text-base font-black text-stone-950">참고 뉴스</h3>
+          <section className="grid min-w-0 gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-base font-black text-stone-950">참고 뉴스</h3>
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-500">
+                {response.references.length}건
+              </span>
+            </div>
             {response.references.length > 0 ? (
-              <div className="grid gap-2">
+              <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
                 {response.references.map((item) => (
                   <a
-                    className="rounded-md border border-stone-200 bg-white p-3 text-sm transition hover:border-emerald-700 hover:bg-emerald-50"
+                    className="min-w-0 rounded-md border border-stone-200 bg-white p-3 text-sm transition hover:border-emerald-700 hover:bg-emerald-50"
                     href={item.url}
                     key={item.id}
                     rel="noreferrer"
                     target="_blank"
                   >
-                    <span className="block font-bold leading-6 text-stone-950">{item.title}</span>
-                    <span className="mt-1 block text-xs font-semibold text-stone-500">
+                    <span className="block break-words font-bold leading-6 text-stone-950">{item.title}</span>
+                    <span className="mt-1 block break-words text-xs font-semibold text-stone-500">
                       {item.source} · {formatDate(item.published_at)}
                     </span>
                   </a>
