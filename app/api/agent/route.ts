@@ -8,6 +8,20 @@ import type { EducationNews, NewsReference } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
+type AgentStructuredAnswer = {
+  headline: string;
+  briefAnswer: string;
+  evidenceCards: Array<{
+    newsId: string;
+    pointTitle: string;
+    factSummary: string;
+    teacherInterpretation: string;
+    schoolAction: string;
+  }>;
+  nextSteps: string[];
+  cautions: string[];
+};
+
 function toReferences(news: EducationNews[]): NewsReference[] {
   return news.map((item) => ({
     id: item.id,
@@ -56,12 +70,70 @@ function buildAgentPrompt({
     "- 기사 전문은 저장되어 있지 않으므로 제목, 출처, URL, 발행일, AI 요약/통찰 범위 안에서만 말한다.",
     "- 확인되지 않은 사실은 단정하지 말고 '저장된 뉴스 기준으로는', '추가 확인이 필요합니다'처럼 표현한다.",
     "- '뉴스에 근거한 내용'과 'AI 해석/제안'을 구분한다.",
-    "- 마지막에 '참고 뉴스' 섹션을 만들고, 참고한 뉴스의 제목, 출처, URL을 반드시 포함한다.",
-    "- 한국어 Markdown으로 간결하게 답한다.",
+    "- Markdown 문서를 만들지 않는다.",
+    "- 반드시 JSON만 반환한다.",
+    "- 답변은 프론트엔드 카드 UI에서 표시할 수 있도록 짧은 문장 단위로 구조화한다.",
+    "- evidenceCards의 newsId는 반드시 아래 저장 뉴스 데이터의 id 중 하나를 사용한다.",
+    "- evidenceCards는 최대 4개로 제한한다.",
+    "- nextSteps는 바로 실행 가능한 짧은 항목 2~5개로 작성한다.",
+    "- cautions에는 단정하지 말아야 할 점이나 원문 확인 필요성을 1~3개 작성한다.",
+    "",
+    "JSON 형식:",
+    "{",
+    '  "headline": "답변 제목",',
+    '  "briefAnswer": "질문에 대한 한 단락 요약",',
+    '  "evidenceCards": [',
+    "    {",
+    '      "newsId": "참고 뉴스 id",',
+    '      "pointTitle": "핵심 포인트 제목",',
+    '      "factSummary": "뉴스에 근거한 내용",',
+    '      "teacherInterpretation": "교사 관점 해석",',
+    '      "schoolAction": "학교 적용 아이디어"',
+    "    }",
+    "  ],",
+    '  "nextSteps": ["실행 항목"],',
+    '  "cautions": ["주의 또는 원문 확인 필요사항"]',
+    "}",
     "",
     "저장 뉴스 데이터:",
     newsLines.join("\n\n"),
   ].join("\n");
+}
+
+function parseJson<T>(text: string): T {
+  return JSON.parse(text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "")) as T;
+}
+
+function normalizeStructuredAnswer(answer: Partial<AgentStructuredAnswer>, fallbackNews: EducationNews[]): AgentStructuredAnswer {
+  const validIds = new Set(fallbackNews.map((item) => item.id));
+  const evidenceCards = Array.isArray(answer.evidenceCards)
+    ? answer.evidenceCards
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          newsId: typeof item.newsId === "string" && validIds.has(item.newsId) ? item.newsId : fallbackNews[0]?.id ?? "",
+          pointTitle: typeof item.pointTitle === "string" ? item.pointTitle : "확인할 교육 뉴스",
+          factSummary: typeof item.factSummary === "string" ? item.factSummary : "저장된 뉴스 기준으로 확인이 필요합니다.",
+          teacherInterpretation:
+            typeof item.teacherInterpretation === "string" ? item.teacherInterpretation : "교사 관점 해석을 신중히 검토해야 합니다.",
+          schoolAction: typeof item.schoolAction === "string" ? item.schoolAction : "원문을 확인한 뒤 학교 상황에 맞게 적용합니다.",
+        }))
+        .slice(0, 4)
+    : [];
+
+  return {
+    headline: typeof answer.headline === "string" ? answer.headline : "저장 뉴스 기반 답변",
+    briefAnswer:
+      typeof answer.briefAnswer === "string"
+        ? answer.briefAnswer
+        : "선택한 기간의 저장 뉴스 데이터를 바탕으로 관련 내용을 정리했습니다.",
+    evidenceCards,
+    nextSteps: Array.isArray(answer.nextSteps)
+      ? answer.nextSteps.filter((item): item is string => typeof item === "string").slice(0, 5)
+      : [],
+    cautions: Array.isArray(answer.cautions)
+      ? answer.cautions.filter((item): item is string => typeof item === "string").slice(0, 3)
+      : ["기사 전문이 아닌 저장된 메타데이터와 AI 요약을 바탕으로 한 답변입니다."],
+  };
 }
 
 async function saveConversation({
@@ -112,23 +184,31 @@ export async function POST(request: Request) {
     const references = toReferences(news);
 
     if (news.length === 0) {
-      const answer = [
-        "선택한 기간 안에서 질문과 연결할 수 있는 저장 뉴스가 없습니다.",
-        "",
-        "뉴스 수집이 아직 실행되지 않았거나, 질문 범위가 현재 저장된 뉴스와 맞지 않을 수 있습니다. 기간을 넓히거나 `/api/daily-cron` 실행 후 다시 질문해주세요.",
-      ].join("\n");
+      const structuredAnswer: AgentStructuredAnswer = {
+        headline: "관련 저장 뉴스가 없습니다",
+        briefAnswer:
+          "선택한 기간 안에서 질문과 연결할 수 있는 저장 뉴스가 없습니다. 기간을 넓히거나 뉴스 수집 후 다시 질문해주세요.",
+        evidenceCards: [],
+        nextSteps: ["검색 기간을 최근 1주일 또는 최근 1개월로 넓혀봅니다.", "뉴스 수집과 브리핑 생성을 먼저 실행합니다."],
+        cautions: ["저장된 뉴스가 없으므로 AI가 근거 답변을 만들 수 없습니다."],
+      };
+      const answer = JSON.stringify(structuredAnswer);
 
       return NextResponse.json({
         answer,
+        structuredAnswer,
         references,
         provider: getAIProvider(),
         saved: false,
       });
     }
 
-    const answer = await generateText(buildAgentPrompt({ message, roleType, news }), {
+    const rawAnswer = await generateText(buildAgentPrompt({ message, roleType, news }), {
+      json: true,
       temperature: 0.25,
     });
+    const structuredAnswer = normalizeStructuredAnswer(parseJson<Partial<AgentStructuredAnswer>>(rawAnswer), news);
+    const answer = JSON.stringify(structuredAnswer);
     const saved = await saveConversation({
       message,
       roleType,
@@ -139,6 +219,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       answer,
+      structuredAnswer,
       references,
       provider: getAIProvider(),
       saved,

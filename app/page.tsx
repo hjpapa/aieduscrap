@@ -273,7 +273,7 @@ export default async function Home({
       <header className="mb-6 grid gap-4 border-b border-stone-200 pb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-emerald-800">초등교사 개인 브리핑</p>
+            <p className="text-sm font-bold text-emerald-800">초등교사 개인 브리핑 AIEudScrap</p>
             <h1 className="mt-1 text-3xl font-black tracking-normal text-stone-950 sm:text-4xl">
               오늘의 교육 뉴스
             </h1>

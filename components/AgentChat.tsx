@@ -6,10 +6,25 @@ import type { AgentPeriod, NewsReference, RoleType } from "@/lib/types";
 
 type AgentResponse = {
   answer: string;
+  structuredAnswer?: AgentStructuredAnswer;
   references: NewsReference[];
   provider?: string;
   saved?: boolean;
   error?: string;
+};
+
+type AgentStructuredAnswer = {
+  headline: string;
+  briefAnswer: string;
+  evidenceCards: Array<{
+    newsId: string;
+    pointTitle: string;
+    factSummary: string;
+    teacherInterpretation: string;
+    schoolAction: string;
+  }>;
+  nextSteps: string[];
+  cautions: string[];
 };
 
 const roles: Array<{ value: RoleType; label: string }> = [
@@ -41,6 +56,149 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getReference(references: NewsReference[], newsId: string) {
+  return references.find((item) => item.id === newsId);
+}
+
+function formatAnswerForExport(response: AgentResponse) {
+  const structured = response.structuredAnswer;
+
+  if (!structured) {
+    const references = response.references
+      .map((item, index) => `${index + 1}. ${item.title}\n- 출처: ${item.source}\n- URL: ${item.url}`)
+      .join("\n\n");
+
+    return [`뉴스 근거 답변`, response.answer, "", "참고 뉴스", references].join("\n\n");
+  }
+
+  const cards = structured.evidenceCards
+    .map((card, index) => {
+      const reference = getReference(response.references, card.newsId);
+
+      return [
+        `${index + 1}. ${card.pointTitle}`,
+        `- 뉴스 근거: ${card.factSummary}`,
+        `- 교사 관점: ${card.teacherInterpretation}`,
+        `- 학교 적용: ${card.schoolAction}`,
+        reference ? `- 참고 뉴스: ${reference.title} / ${reference.source} / ${reference.url}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+
+  return [
+    structured.headline,
+    "",
+    structured.briefAnswer,
+    "",
+    "핵심 카드",
+    cards,
+    "",
+    "다음 실행",
+    structured.nextSteps.map((item, index) => `${index + 1}. ${item}`).join("\n"),
+    "",
+    "주의",
+    structured.cautions.map((item, index) => `${index + 1}. ${item}`).join("\n"),
+  ].join("\n");
+}
+
+function StructuredAnswerView({ response }: { response: AgentResponse }) {
+  const structured = response.structuredAnswer;
+
+  if (!structured) {
+    return (
+      <article className="min-w-0 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
+        <div className="whitespace-pre-wrap text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">{response.answer}</div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="grid min-w-0 gap-4">
+      <section className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
+        <p className="text-xs font-bold text-emerald-800">SUMMARY</p>
+        <h4 className="mt-1 text-xl font-black leading-snug text-stone-950">{structured.headline}</h4>
+        <p className="mt-3 text-sm leading-7 text-stone-700">{structured.briefAnswer}</p>
+      </section>
+
+      {structured.evidenceCards.length > 0 ? (
+        <section className="grid gap-3">
+          {structured.evidenceCards.map((card, index) => {
+            const reference = getReference(response.references, card.newsId);
+
+            return (
+              <div className="rounded-lg border border-stone-200 bg-white p-4" key={`${card.newsId}-${index}`}>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                    {index + 1}
+                  </span>
+                  <h5 className="text-base font-black leading-snug text-stone-950">{card.pointTitle}</h5>
+                </div>
+
+                <div className="grid gap-3 text-sm leading-6 text-stone-700">
+                  <section>
+                    <p className="text-xs font-bold text-emerald-800">뉴스에 근거한 내용</p>
+                    <p className="mt-1">{card.factSummary}</p>
+                  </section>
+                  <section>
+                    <p className="text-xs font-bold text-emerald-800">교사 관점 해석</p>
+                    <p className="mt-1">{card.teacherInterpretation}</p>
+                  </section>
+                  <section>
+                    <p className="text-xs font-bold text-emerald-800">학교 적용 아이디어</p>
+                    <p className="mt-1">{card.schoolAction}</p>
+                  </section>
+                </div>
+
+                {reference ? (
+                  <a
+                    className="mt-4 block rounded-md border border-stone-200 bg-stone-50 p-3 text-sm transition hover:border-emerald-700 hover:bg-emerald-50"
+                    href={reference.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <span className="block break-words font-bold leading-6 text-stone-950">{reference.title}</span>
+                    <span className="mt-1 block text-xs font-semibold text-stone-500">
+                      {reference.source} · {formatDate(reference.published_at)}
+                    </span>
+                  </a>
+                ) : null}
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <section className="rounded-lg border border-stone-200 bg-white p-4">
+          <h5 className="text-sm font-black text-stone-950">다음 실행</h5>
+          <ul className="mt-3 grid gap-2 text-sm leading-6 text-stone-700">
+            {structured.nextSteps.map((item, index) => (
+              <li className="flex gap-2" key={`${item}-${index}`}>
+                <span className="font-bold text-emerald-800">{index + 1}.</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-lg border border-amber-100 bg-amber-50/60 p-4">
+          <h5 className="text-sm font-black text-stone-950">주의할 점</h5>
+          <ul className="mt-3 grid gap-2 text-sm leading-6 text-stone-700">
+            {structured.cautions.map((item, index) => (
+              <li className="flex gap-2" key={`${item}-${index}`}>
+                <span className="font-bold text-amber-800">{index + 1}.</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </article>
+  );
+}
+
 export default function AgentChat() {
   const [message, setMessage] = useState("");
   const [roleType, setRoleType] = useState<RoleType>("homeroom_teacher");
@@ -52,17 +210,7 @@ export default function AgentChat() {
   const [error, setError] = useState<string | null>(null);
 
   const referenceIds = useMemo(() => response?.references.map((item) => item.id) ?? [], [response]);
-  const answerExportText = useMemo(() => {
-    if (!response) {
-      return "";
-    }
-
-    const references = response.references
-      .map((item, index) => `${index + 1}. ${item.title}\n- 출처: ${item.source}\n- URL: ${item.url}`)
-      .join("\n\n");
-
-    return [`뉴스 근거 답변`, response.answer, "", "참고 뉴스", references].join("\n\n");
-  }, [response]);
+  const answerExportText = useMemo(() => (response ? formatAnswerForExport(response) : ""), [response]);
 
   async function copyAnswer() {
     if (!answerExportText) {
@@ -244,7 +392,7 @@ export default function AgentChat() {
               <div>
                 <p className="text-xs font-bold text-emerald-800">AGENT ANSWER</p>
                 <h3 className="mt-1 text-xl font-black text-stone-950" id="agent-answer-title">
-                  뉴스 근거 답변
+                  구조화된 뉴스 답변
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -273,11 +421,7 @@ export default function AgentChat() {
             </header>
 
             <div className="grid min-h-0 gap-5 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-              <article className="min-w-0 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
-                <div className="whitespace-pre-wrap text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
-                  {response.answer}
-                </div>
-              </article>
+              <StructuredAnswerView response={response} />
 
               <aside className="grid content-start gap-4">
                 <section className="rounded-lg border border-stone-200 bg-white p-4">
