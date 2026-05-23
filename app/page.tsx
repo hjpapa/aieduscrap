@@ -295,81 +295,74 @@ export default async function Home({
 
       {!error ? (
         <div className="grid gap-6">
-          <TodayBriefingCard briefing={briefing} briefingDate={briefingDate} majorNews={majorNews} />
-
-          <div className="grid items-start gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-            <aside className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+            <TodayBriefingCard briefing={briefing} briefingDate={briefingDate} majorNews={majorNews} />
+            <aside className="lg:sticky lg:top-4">
               <AgentChat />
             </aside>
-
-            <div className="grid gap-4">
-              <details
-                className="group scroll-mt-4 rounded-lg border border-stone-200 bg-white shadow-sm"
-                id="news-list"
-                open
-              >
-                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
-                  <div>
-                    <p className="text-xs font-bold text-emerald-800">CATEGORY</p>
-                    <h2 className="mt-1 text-xl font-black text-stone-950">카테고리별로 빠르게 보기</h2>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">
-                      {dedupedFilteredNews.length}건
-                    </span>
-                    <span className="text-sm font-bold text-emerald-800 group-open:hidden">펼치기</span>
-                    <span className="hidden text-sm font-bold text-stone-500 group-open:inline">접기</span>
-                  </div>
-                </summary>
-
-                <div className="grid gap-6 border-t border-stone-100 p-5 pt-4">
-                  <CategoryFilter activeCategory={selectedCategory} counts={counts} />
-
-                  <section className="grid gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-emerald-800">TOP PRIORITY</p>
-                        <h2 className="mt-1 text-xl font-black text-stone-950">중요도 높은 뉴스 5개</h2>
-                      </div>
-                      <span className="text-sm font-semibold text-stone-500">{topNews.length}건</span>
-                    </div>
-                    {topNews.length > 0 ? (
-                      <div className="grid gap-4 xl:grid-cols-2">
-                        {topNews.map((item) => (
-                          <NewsCard featured item={item} key={item.id} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-stone-300 bg-white/70 p-5 text-sm text-stone-500">
-                        선택한 카테고리에 중요도 높은 뉴스가 아직 없습니다.
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="grid gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-emerald-800">ALL NEWS</p>
-                        <h2 className="mt-1 text-xl font-black text-stone-950">오늘 수집된 뉴스</h2>
-                      </div>
-                      <span className="text-sm font-semibold text-stone-500">{remainingNews.length}건</span>
-                    </div>
-                    {remainingNews.length > 0 ? (
-                      <div className="grid gap-4">
-                        {remainingNews.map((item) => (
-                          <NewsCard item={item} key={item.id} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-stone-300 bg-white/70 p-5 text-sm text-stone-500">
-                        표시할 추가 뉴스가 없습니다.
-                      </div>
-                    )}
-                  </section>
-                </div>
-              </details>
-            </div>
           </div>
+
+          <details className="group scroll-mt-4 rounded-lg border border-stone-200 bg-white shadow-sm" id="news-list" open>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
+              <div>
+                <p className="text-xs font-bold text-emerald-800">CATEGORY</p>
+                <h2 className="mt-1 text-xl font-black text-stone-950">카테고리별로 빠르게 보기</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">
+                  {dedupedFilteredNews.length}건
+                </span>
+                <span className="text-sm font-bold text-emerald-800 group-open:hidden">펼치기</span>
+                <span className="hidden text-sm font-bold text-stone-500 group-open:inline">접기</span>
+              </div>
+            </summary>
+
+            <div className="grid gap-6 border-t border-stone-100 p-5 pt-4">
+              <CategoryFilter activeCategory={selectedCategory} counts={counts} />
+
+              <section className="grid gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-emerald-800">TOP PRIORITY</p>
+                    <h2 className="mt-1 text-xl font-black text-stone-950">중요도 높은 뉴스 5개</h2>
+                  </div>
+                  <span className="text-sm font-semibold text-stone-500">{topNews.length}건</span>
+                </div>
+                {topNews.length > 0 ? (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {topNews.map((item) => (
+                      <NewsCard featured item={item} key={item.id} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-stone-300 bg-white/70 p-5 text-sm text-stone-500">
+                    선택한 카테고리에 중요도 높은 뉴스가 아직 없습니다.
+                  </div>
+                )}
+              </section>
+
+              <section className="grid gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-emerald-800">ALL NEWS</p>
+                    <h2 className="mt-1 text-xl font-black text-stone-950">오늘 수집된 뉴스</h2>
+                  </div>
+                  <span className="text-sm font-semibold text-stone-500">{remainingNews.length}건</span>
+                </div>
+                {remainingNews.length > 0 ? (
+                  <div className="grid gap-4">
+                    {remainingNews.map((item) => (
+                      <NewsCard item={item} key={item.id} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-stone-300 bg-white/70 p-5 text-sm text-stone-500">
+                    표시할 추가 뉴스가 없습니다.
+                  </div>
+                )}
+              </section>
+            </div>
+          </details>
         </div>
       ) : null}
     </main>
