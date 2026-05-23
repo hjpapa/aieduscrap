@@ -3,6 +3,7 @@ import { generateBatchNewsInsights, generateText, getAIProvider, isAIQuotaError 
 import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 import { batchNewsInsightPrompt, dailyBriefingPrompt } from "@/lib/prompts";
 import { getKstDayRange } from "@/lib/date";
+import { isFreshPublishedAt } from "@/lib/newsFreshness";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTrustedSourceScore } from "@/lib/trustedSources";
 import type { EducationNews } from "@/lib/types";
@@ -67,19 +68,40 @@ export async function GET(request: Request) {
   const supabase = getSupabaseAdmin();
   const { date, start, end } = getKstDayRange();
 
-  const { data, error } = await supabase
-    .from("education_news")
-    .select("*")
-    .gte("published_at", start)
-    .lt("published_at", end)
-    .order("published_at", { ascending: false })
-    .limit(80);
+  const [publishedResult, collectedResult] = await Promise.all([
+    supabase
+      .from("education_news")
+      .select("*")
+      .gte("published_at", start)
+      .lt("published_at", end)
+      .order("published_at", { ascending: false })
+      .limit(120),
+    supabase
+      .from("education_news")
+      .select("*")
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .order("created_at", { ascending: false })
+      .limit(120),
+  ]);
+  const error = publishedResult.error ?? collectedResult.error;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const news = ((data ?? []) as EducationNews[]).sort(sortForAnalysis).slice(0, 40);
+  const newsMap = new Map<string, EducationNews>();
+
+  for (const item of [
+    ...((publishedResult.data ?? []) as EducationNews[]),
+    ...((collectedResult.data ?? []) as EducationNews[]),
+  ]) {
+    if (isFreshPublishedAt(item.published_at)) {
+      newsMap.set(item.id, item);
+    }
+  }
+
+  const news = Array.from(newsMap.values()).sort(sortForAnalysis).slice(0, 40);
   const processed: EducationNews[] = [];
   const errors: Array<{ id: string; title: string; message: string }> = [];
   const unanalyzed = news.filter(

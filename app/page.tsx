@@ -3,6 +3,7 @@ import AgentChat from "@/components/AgentChat";
 import { inferNewsCategory, newsCategories, normalizeCategory } from "@/lib/categories";
 import { getKstDayRange } from "@/lib/date";
 import { dedupeNewsForDisplay } from "@/lib/dedupe";
+import { isFreshPublishedAt } from "@/lib/newsFreshness";
 import { getDisplayTitle, hasTranslatedTitle } from "@/lib/newsDisplay";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTrustedSourceLabel, getTrustedSourceScore } from "@/lib/trustedSources";
@@ -73,7 +74,7 @@ async function getTodayBriefing() {
   const supabase = getSupabaseAdmin();
   const { date, start, end } = getKstDayRange();
 
-  const [{ data: briefing }, { data: news }] = await Promise.all([
+  const [{ data: briefing }, { data: publishedNews }, { data: collectedNews }] = await Promise.all([
     supabase.from("daily_briefings").select("*").eq("briefing_date", date).maybeSingle(),
     supabase
       .from("education_news")
@@ -82,12 +83,26 @@ async function getTodayBriefing() {
       .lt("published_at", end)
       .order("published_at", { ascending: false })
       .limit(100),
+    supabase
+      .from("education_news")
+      .select("*")
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+  const newsMap = new Map<string, EducationNews>();
+
+  for (const item of [...((publishedNews ?? []) as EducationNews[]), ...((collectedNews ?? []) as EducationNews[])]) {
+    if (isFreshPublishedAt(item.published_at)) {
+      newsMap.set(item.id, item);
+    }
+  }
 
   return {
     date,
     briefing: briefing as DailyBriefing | null,
-    news: ((news ?? []) as EducationNews[]).sort(sortNews),
+    news: Array.from(newsMap.values()).sort(sortNews),
   };
 }
 

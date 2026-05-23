@@ -1,6 +1,7 @@
 import { inferNewsCategory, newsCategories } from "./categories";
 import { getKstDayRange } from "./date";
 import { getDisplayTitle } from "./newsDisplay";
+import { isFreshPublishedAt } from "./newsFreshness";
 import { getSupabaseAdmin } from "./supabase";
 import { getTrustedSourceScore } from "./trustedSources";
 import type { AgentPeriod, EducationNews, Importance } from "./types";
@@ -107,20 +108,41 @@ export async function searchNews({
 }) {
   const supabase = getSupabaseAdmin();
   const { start, end } = getPeriodRange(period);
-  const { data, error } = await supabase
-    .from("education_news")
-    .select("*")
-    .gte("published_at", start)
-    .lt("published_at", end)
-    .order("published_at", { ascending: false })
-    .limit(120);
+  const [publishedResult, collectedResult] = await Promise.all([
+    supabase
+      .from("education_news")
+      .select("*")
+      .gte("published_at", start)
+      .lt("published_at", end)
+      .order("published_at", { ascending: false })
+      .limit(120),
+    supabase
+      .from("education_news")
+      .select("*")
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .order("created_at", { ascending: false })
+      .limit(120),
+  ]);
+  const error = publishedResult.error ?? collectedResult.error;
 
   if (error) {
     throw error;
   }
 
   const tokens = tokenize(message);
-  const rows = ((data ?? []) as EducationNews[]).map((item) => ({
+  const newsMap = new Map<string, EducationNews>();
+
+  for (const item of [
+    ...((publishedResult.data ?? []) as EducationNews[]),
+    ...((collectedResult.data ?? []) as EducationNews[]),
+  ]) {
+    if (isFreshPublishedAt(item.published_at, new Date(), periodDays[period])) {
+      newsMap.set(item.id, item);
+    }
+  }
+
+  const rows = Array.from(newsMap.values()).map((item) => ({
     item,
     score: scoreNews(item, message, tokens),
   }));

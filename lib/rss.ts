@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
 import { inferNewsCategory, normalizeCategory } from "./categories";
 import { isSimilarToAnyTitle } from "./dedupe";
+import { getNewsMaxAgeDays, isFreshPublishedAt } from "./newsFreshness";
 import type { CollectedNewsItem, NewsCategory } from "./types";
 
 type FeedConfig = {
@@ -19,14 +20,16 @@ const parser = new Parser({
 const configuredMaxItemsPerFeed = Number(process.env.NEWS_MAX_ITEMS_PER_FEED ?? 30);
 const maxItemsPerFeed =
   Number.isFinite(configuredMaxItemsPerFeed) && configuredMaxItemsPerFeed > 0 ? configuredMaxItemsPerFeed : 30;
+const maxItemAgeDays = getNewsMaxAgeDays();
 
 function googleNewsSearchUrl(query: string, locale: "ko" | "en" = "ko") {
   const params =
     locale === "ko"
       ? { hl: "ko", gl: "KR", ceid: "KR:ko" }
       : { hl: "en-US", gl: "US", ceid: "US:en" };
+  const timedQuery = /\bwhen:\d+[hdmy]\b/i.test(query) ? query : `${query} when:${maxItemAgeDays}d`;
 
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${params.hl}&gl=${params.gl}&ceid=${params.ceid}`;
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(timedQuery)}&hl=${params.hl}&gl=${params.gl}&ceid=${params.ceid}`;
 }
 
 const defaultFeeds: FeedConfig[] = [
@@ -227,12 +230,18 @@ async function collectFeed(feed: FeedConfig) {
       return [];
     }
 
+    const published_at = toIsoDate(item.isoDate ?? item.pubDate);
+
+    if (!isFreshPublishedAt(published_at)) {
+      return [];
+    }
+
     return [
       {
         title,
         source: extractItemSource(item, feed.name),
         url,
-        published_at: toIsoDate(item.isoDate ?? item.pubDate),
+        published_at,
         category: inferNewsCategory(title, feed.category),
       } satisfies CollectedNewsItem,
     ];

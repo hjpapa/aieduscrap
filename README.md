@@ -40,6 +40,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 CRON_SECRET=
 NEWS_RSS_FEEDS=
 NEWS_MAX_ITEMS_PER_FEED=30
+NEWS_MAX_ITEM_AGE_DAYS=7
 ```
 
 Gemini만 사용할 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`이 필요합니다. OpenAI를 사용하지 않으면 `OPENAI_API_KEY`는 비워도 됩니다.
@@ -51,6 +52,8 @@ Gemini만 사용할 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL
 신뢰 출처 우선순위도 적용되어 있습니다. 교육부, KERIS, OECD, UNESCO 같은 공식 기관/국제기구와 EdSurge, Education Week, eSchool News, EdTech Magazine 같은 주요 해외 교육기술 매체를 별도 피드로 먼저 수집하고, 화면 정렬과 에이전트 검색에서도 우선 참고하도록 구성했습니다. Google News RSS의 실제 매체명도 함께 읽어 `source`에 반영합니다.
 
 `NEWS_MAX_ITEMS_PER_FEED`는 각 RSS 피드에서 가져올 최대 기사 수입니다. 기본값은 `30`이며, Vercel 함수 실행 시간이 길어지면 `15` 또는 `20`으로 줄일 수 있습니다.
+
+`NEWS_MAX_ITEM_AGE_DAYS`는 RSS 수집 시 발행일 기준으로 며칠 이내 뉴스만 저장할지 정합니다. 기본값은 `7`입니다. Google News의 site 검색이 오래된 공식 페이지를 가져오는 경우가 있어, 이 값으로 오래된 항목을 걸러냅니다.
 
 ## Supabase SQL
 
