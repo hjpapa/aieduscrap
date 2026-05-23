@@ -10,11 +10,15 @@ type FeedConfig = {
 };
 
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 8000,
   headers: {
     "User-Agent": "education-news-insight-agent/0.1",
   },
 });
+
+const configuredMaxItemsPerFeed = Number(process.env.NEWS_MAX_ITEMS_PER_FEED ?? 30);
+const maxItemsPerFeed =
+  Number.isFinite(configuredMaxItemsPerFeed) && configuredMaxItemsPerFeed > 0 ? configuredMaxItemsPerFeed : 30;
 
 const defaultFeeds: FeedConfig[] = [
   {
@@ -45,6 +49,36 @@ const defaultFeeds: FeedConfig[] = [
   {
     name: "Google 뉴스 - 교육평가",
     url: "https://news.google.com/rss/search?q=%EA%B5%90%EC%9C%A1%ED%8F%89%EA%B0%80+%ED%95%99%EA%B5%90&hl=ko&gl=KR&ceid=KR:ko",
+    category: "평가",
+  },
+  {
+    name: "Google 뉴스 - 국제 교육",
+    url: "https://news.google.com/rss/search?q=%22education%22+%22school%22&hl=en-US&gl=US&ceid=US:en",
+    category: "기타",
+  },
+  {
+    name: "Google 뉴스 - 국제 AI교육",
+    url: "https://news.google.com/rss/search?q=%22AI+education%22+OR+%22artificial+intelligence+education%22&hl=en-US&gl=US&ceid=US:en",
+    category: "AI교육",
+  },
+  {
+    name: "Google 뉴스 - 국제 교육정책",
+    url: "https://news.google.com/rss/search?q=%22education+policy%22+OECD+OR+UNESCO&hl=en-US&gl=US&ceid=US:en",
+    category: "교육정책",
+  },
+  {
+    name: "Google 뉴스 - 국제 디지털교육",
+    url: "https://news.google.com/rss/search?q=%22digital+education%22+OR+edtech&hl=en-US&gl=US&ceid=US:en",
+    category: "디지털교육",
+  },
+  {
+    name: "Google 뉴스 - 국제 학생지원",
+    url: "https://news.google.com/rss/search?q=%22student+wellbeing%22+school+OR+%22school+discipline%22&hl=en-US&gl=US&ceid=US:en",
+    category: "생활지도",
+  },
+  {
+    name: "Google 뉴스 - 국제 교육평가",
+    url: "https://news.google.com/rss/search?q=%22education+assessment%22+school+OR+%22student+assessment%22&hl=en-US&gl=US&ceid=US:en",
     category: "평가",
   },
 ];
@@ -87,7 +121,7 @@ function toIsoDate(value?: string) {
 async function fetchFeedXml(url: string) {
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
       const response = await fetch(url, {
         cache: "no-store",
@@ -112,41 +146,57 @@ async function fetchFeedXml(url: string) {
   throw lastError instanceof Error ? lastError : new Error("Unknown RSS fetch error");
 }
 
+async function collectFeed(feed: FeedConfig) {
+  const xml = await fetchFeedXml(feed.url);
+  const parsed = await parser.parseString(xml);
+
+  return parsed.items.slice(0, maxItemsPerFeed).flatMap((item) => {
+    const url = item.link?.trim();
+    const title = item.title?.trim();
+
+    if (!url || !title) {
+      return [];
+    }
+
+    return [
+      {
+        title,
+        source: feed.name,
+        url,
+        published_at: toIsoDate(item.isoDate ?? item.pubDate),
+        category: inferNewsCategory(title, feed.category),
+      } satisfies CollectedNewsItem,
+    ];
+  });
+}
+
 export async function collectEducationNews() {
   const feeds = getFeedConfigs();
   const collected: CollectedNewsItem[] = [];
   const errors: Array<{ feed: string; message: string }> = [];
   const seen = new Set<string>();
   const seenTitles: string[] = [];
+  const results = await Promise.allSettled(feeds.map((feed) => collectFeed(feed)));
 
-  for (const feed of feeds) {
-    try {
-      const xml = await fetchFeedXml(feed.url);
-      const parsed = await parser.parseString(xml);
+  for (const [index, result] of results.entries()) {
+    const feed = feeds[index];
 
-      for (const item of parsed.items) {
-        const url = item.link?.trim();
-        const title = item.title?.trim();
-
-        if (!url || !title || seen.has(url) || isSimilarToAnyTitle(title, seenTitles)) {
-          continue;
-        }
-
-        seen.add(url);
-        seenTitles.push(title);
-        collected.push({
-          title,
-          source: feed.name,
-          url,
-          published_at: toIsoDate(item.isoDate ?? item.pubDate),
-          category: inferNewsCategory(title, feed.category),
-        });
-      }
-    } catch (error) {
+    if (result.status === "rejected") {
       errors.push({
         feed: feed.name,
-        message: error instanceof Error ? error.message : "Unknown RSS error",
+        message: result.reason instanceof Error ? result.reason.message : "Unknown RSS error",
       });
+      continue;
+    }
+
+    for (const item of result.value) {
+      if (seen.has(item.url) || isSimilarToAnyTitle(item.title, seenTitles)) {
+        continue;
+      }
+
+      seen.add(item.url);
+      seenTitles.push(item.title);
+      collected.push(item);
     }
   }
 
