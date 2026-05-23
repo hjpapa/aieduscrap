@@ -103,6 +103,10 @@ export async function generateNewsInsight(news: EducationNews, prompt: string) {
 
   return {
     ...insight,
+    translated_title:
+      typeof insight.translated_title === "string" && insight.translated_title.trim().length > 0
+        ? insight.translated_title.trim()
+        : null,
     category: normalizeCategory(insight.category),
     importance: ["low", "medium", "high"].includes(insight.importance) ? insight.importance : "medium",
   } satisfies NewsInsight;
@@ -122,6 +126,10 @@ export async function generateBatchNewsInsights(prompt: string) {
 
   return items.map((insight) => ({
     ...insight,
+    translated_title:
+      typeof insight.translated_title === "string" && insight.translated_title.trim().length > 0
+        ? insight.translated_title.trim()
+        : null,
     category: normalizeCategory(insight.category),
     importance: ["low", "medium", "high"].includes(insight.importance) ? insight.importance : "medium",
   })) satisfies BatchNewsInsight[];

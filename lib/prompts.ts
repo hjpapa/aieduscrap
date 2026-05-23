@@ -1,4 +1,5 @@
 import type { CollectedNewsItem, EducationNews } from "./types";
+import { getDisplayTitle, hasTranslatedTitle } from "./newsDisplay";
 
 export function newsInsightPrompt(news: Pick<EducationNews, "title" | "source" | "url" | "published_at">) {
   return [
@@ -6,7 +7,8 @@ export function newsInsightPrompt(news: Pick<EducationNews, "title" | "source" |
     "기사 전문은 제공되지 않는다. 제목, 출처, URL, 발행일만 보고 과장하지 말고 신중하게 작성한다.",
     "사실 요약과 교사 관점 해석을 반드시 구분한다.",
     "원문 링크 확인이 필요할 수 있음을 전제로, 확인되지 않은 세부 사실을 지어내지 않는다.",
-    "JSON만 반환한다. 키는 category, summary, teacher_insight, school_action, importance다.",
+    "JSON만 반환한다. 키는 translated_title, category, summary, teacher_insight, school_action, importance다.",
+    "translated_title은 제목이 한국어가 아니면 자연스러운 한국어 번역 제목을 작성하고, 이미 한국어 제목이면 null로 둔다.",
     "category는 AI교육, 교육정책, 디지털교육, 생활지도, 평가, 기타 중 하나다.",
     "importance는 low, medium, high 중 하나다.",
     "",
@@ -21,7 +23,9 @@ export function dailyBriefingPrompt(items: Array<EducationNews | CollectedNewsIt
   const lines = items.map((item, index) => {
     const analyzed = "summary" in item;
     return [
-      `${index + 1}. ${item.title}`,
+      `${index + 1}. ${getDisplayTitle(item)}`,
+      hasTranslatedTitle(item) ? `원제: ${item.title}` : null,
+      "translated_title" in item && item.translated_title ? `한국어 제목: ${item.translated_title}` : null,
       `출처: ${item.source}`,
       `카테고리: ${item.category}`,
       `URL: ${item.url}`,
@@ -52,11 +56,12 @@ export function batchNewsInsightPrompt(news: EducationNews[]) {
       `${index + 1}.`,
       `id: ${item.id}`,
       `제목: ${item.title}`,
+      item.translated_title ? `기존 한국어 제목: ${item.translated_title}` : null,
       `출처: ${item.source}`,
       `카테고리 후보: ${item.category ?? "기타"}`,
       `URL: ${item.url}`,
       `발행일: ${item.published_at}`,
-    ].join("\n"),
+    ].filter(Boolean).join("\n"),
   );
 
   return [
@@ -65,7 +70,8 @@ export function batchNewsInsightPrompt(news: EducationNews[]) {
     "사실 요약과 교사 관점 해석을 반드시 구분한다.",
     "확인되지 않은 세부 사실을 지어내지 않는다.",
     "JSON만 반환한다. 최상위 키는 items이고 값은 배열이다.",
-    "각 배열 항목은 id, category, summary, teacher_insight, school_action, importance를 포함한다.",
+    "각 배열 항목은 id, translated_title, category, summary, teacher_insight, school_action, importance를 포함한다.",
+    "translated_title은 제목이 한국어가 아니면 자연스러운 한국어 번역 제목을 작성하고, 이미 한국어 제목이면 null로 둔다.",
     "category는 AI교육, 교육정책, 디지털교육, 생활지도, 평가, 기타 중 하나다.",
     "importance는 low, medium, high 중 하나다.",
     "",

@@ -26,6 +26,7 @@ function toReferences(news: EducationNews[]): NewsReference[] {
   return news.map((item) => ({
     id: item.id,
     title: item.title,
+    translated_title: item.translated_title,
     source: item.source,
     url: item.url,
     published_at: item.published_at,
@@ -47,6 +48,7 @@ function buildAgentPrompt({
   const newsLines = news.map((item, index) =>
     [
       `${index + 1}. ${item.title}`,
+      item.translated_title ? `한국어 제목: ${item.translated_title}` : null,
       `id: ${item.id}`,
       `출처: ${item.source}`,
       `URL: ${item.url}`,
@@ -56,7 +58,7 @@ function buildAgentPrompt({
       `사실 요약: ${item.summary ?? "저장된 요약 없음"}`,
       `교사 관점 통찰: ${item.teacher_insight ?? "저장된 통찰 없음"}`,
       `학교 적용 아이디어: ${item.school_action ?? "저장된 아이디어 없음"}`,
-    ].join("\n"),
+    ].filter(Boolean).join("\n"),
   );
 
   return [

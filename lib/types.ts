@@ -5,6 +5,7 @@ export type NewsCategory = "AI교육" | "교육정책" | "디지털교육" | "�
 export type EducationNews = {
   id: string;
   title: string;
+  translated_title?: string | null;
   source: string;
   url: string;
   published_at: string;
@@ -33,6 +34,7 @@ export type CollectedNewsItem = {
 };
 
 export type NewsInsight = {
+  translated_title?: string | null;
   category: NewsCategory;
   summary: string;
   teacher_insight: string;
@@ -50,4 +52,7 @@ export type AgentPeriod = "today" | "3d" | "1w" | "1m";
 
 export type OutputType = "report_summary" | "training_intro" | "lesson_idea" | "parent_notice" | "checklist";
 
-export type NewsReference = Pick<EducationNews, "id" | "title" | "source" | "url" | "published_at" | "category" | "importance">;
+export type NewsReference = Pick<
+  EducationNews,
+  "id" | "title" | "translated_title" | "source" | "url" | "published_at" | "category" | "importance"
+>;

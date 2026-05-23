@@ -13,6 +13,7 @@ function toReferences(news: EducationNews[]): NewsReference[] {
   return news.map((item) => ({
     id: item.id,
     title: item.title,
+    translated_title: item.translated_title,
     source: item.source,
     url: item.url,
     published_at: item.published_at,

@@ -46,7 +46,7 @@ Gemini만 사용할 경우 `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL
 
 `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 키입니다. 브라우저에 노출되는 `NEXT_PUBLIC_` 변수로 만들지 마세요.
 
-기본 RSS 피드는 국내 교육 뉴스와 국제 교육 뉴스를 함께 수집합니다. 국제 피드는 영어권 Google News RSS를 활용해 국제 교육, AI교육, 교육정책, 디지털교육, 학생지원, 교육평가 관련 뉴스를 보강합니다.
+기본 RSS 피드는 국내 교육 뉴스와 국제 교육 뉴스를 함께 수집합니다. 국제 피드는 영어권 Google News RSS를 활용해 K-12, elementary school, primary school, classroom, student wellbeing, assessment 중심의 교육 뉴스를 보강합니다. 국제 뉴스 제목은 AI 분석 단계에서 `translated_title`에 한국어 번역 제목으로 저장되고, 화면에서는 한국어 제목을 우선 표시합니다.
 
 `NEWS_MAX_ITEMS_PER_FEED`는 각 RSS 피드에서 가져올 최대 기사 수입니다. 기본값은 `30`이며, Vercel 함수 실행 시간이 길어지면 `15` 또는 `20`으로 줄일 수 있습니다.
 
@@ -60,6 +60,7 @@ create extension if not exists "pgcrypto";
 create table if not exists education_news (
   id uuid primary key default gen_random_uuid(),
   title text not null,
+  translated_title text,
   source text not null,
   url text not null unique,
   published_at timestamptz not null,
@@ -73,6 +74,10 @@ create table if not exists education_news (
 
 create index if not exists education_news_published_at_idx
   on education_news (published_at desc);
+
+-- 기존 education_news 테이블을 이미 만들었다면 아래 한 줄만 추가로 실행해도 됩니다.
+alter table education_news
+  add column if not exists translated_title text;
 
 create table if not exists daily_briefings (
   id uuid primary key default gen_random_uuid(),

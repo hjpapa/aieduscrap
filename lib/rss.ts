@@ -53,32 +53,32 @@ const defaultFeeds: FeedConfig[] = [
   },
   {
     name: "Google 뉴스 - 국제 교육",
-    url: "https://news.google.com/rss/search?q=%22education%22+%22school%22&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22K-12+education%22+OR+%22elementary+school%22+OR+%22primary+school%22&hl=en-US&gl=US&ceid=US:en",
     category: "기타",
   },
   {
     name: "Google 뉴스 - 국제 AI교육",
-    url: "https://news.google.com/rss/search?q=%22AI+education%22+OR+%22artificial+intelligence+education%22&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22AI+in+schools%22+OR+%22AI+education%22+OR+%22artificial+intelligence+classroom%22&hl=en-US&gl=US&ceid=US:en",
     category: "AI교육",
   },
   {
     name: "Google 뉴스 - 국제 교육정책",
-    url: "https://news.google.com/rss/search?q=%22education+policy%22+OECD+OR+UNESCO&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22school+policy%22+OR+%22education+policy%22+OECD+OR+UNESCO&hl=en-US&gl=US&ceid=US:en",
     category: "교육정책",
   },
   {
     name: "Google 뉴스 - 국제 디지털교육",
-    url: "https://news.google.com/rss/search?q=%22digital+education%22+OR+edtech&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22digital+learning%22+school+OR+%22edtech%22+classroom&hl=en-US&gl=US&ceid=US:en",
     category: "디지털교육",
   },
   {
     name: "Google 뉴스 - 국제 학생지원",
-    url: "https://news.google.com/rss/search?q=%22student+wellbeing%22+school+OR+%22school+discipline%22&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22student+wellbeing%22+school+OR+%22school+discipline%22+OR+%22student+mental+health%22&hl=en-US&gl=US&ceid=US:en",
     category: "생활지도",
   },
   {
     name: "Google 뉴스 - 국제 교육평가",
-    url: "https://news.google.com/rss/search?q=%22education+assessment%22+school+OR+%22student+assessment%22&hl=en-US&gl=US&ceid=US:en",
+    url: "https://news.google.com/rss/search?q=%22student+assessment%22+school+OR+%22learning+assessment%22+OR+%22standardized+testing%22&hl=en-US&gl=US&ceid=US:en",
     category: "평가",
   },
 ];

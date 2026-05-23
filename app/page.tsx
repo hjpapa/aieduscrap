@@ -3,6 +3,7 @@ import AgentChat from "@/components/AgentChat";
 import { inferNewsCategory, newsCategories, normalizeCategory } from "@/lib/categories";
 import { getKstDayRange } from "@/lib/date";
 import { dedupeNewsForDisplay } from "@/lib/dedupe";
+import { getDisplayTitle, hasTranslatedTitle } from "@/lib/newsDisplay";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { DailyBriefing, EducationNews, Importance, NewsCategory } from "@/lib/types";
 
@@ -146,7 +147,8 @@ function TodayBriefingCard({
                 <time dateTime={item.published_at}>{formatDate(item.published_at)}</time>
               </div>
 
-              <h3 className="text-lg font-black leading-snug text-stone-950">{item.title}</h3>
+              <h3 className="text-lg font-black leading-snug text-stone-950">{getDisplayTitle(item)}</h3>
+              {hasTranslatedTitle(item) ? <p className="mt-1 text-xs leading-5 text-stone-500">{item.title}</p> : null}
 
               <div className="mt-3 grid gap-2 text-sm leading-6 text-stone-700">
                 <div>
@@ -202,8 +204,9 @@ function NewsCard({ item, featured = false }: { item: EducationNews; featured?: 
       </div>
 
       <h3 className={featured ? "text-xl font-bold leading-snug text-stone-950" : "text-lg font-bold leading-snug text-stone-950"}>
-        {item.title}
+        {getDisplayTitle(item)}
       </h3>
+      {hasTranslatedTitle(item) ? <p className="-mt-2 text-xs leading-5 text-stone-500">{item.title}</p> : null}
 
       <div className="grid gap-3 text-sm leading-6 text-stone-700">
         <section className="grid gap-1">

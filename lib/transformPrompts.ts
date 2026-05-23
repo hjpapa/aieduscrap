@@ -19,6 +19,7 @@ function newsBlock(news: EducationNews[]) {
   return news
     .map(
       (item, index) => `${index + 1}. ${item.title}
+한국어 제목: ${item.translated_title ?? "없음"}
 출처: ${item.source}
 URL: ${item.url}
 발행일: ${item.published_at}

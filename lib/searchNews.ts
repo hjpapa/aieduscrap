@@ -1,5 +1,6 @@
 import { inferNewsCategory, newsCategories } from "./categories";
 import { getKstDayRange } from "./date";
+import { getDisplayTitle } from "./newsDisplay";
 import { getSupabaseAdmin } from "./supabase";
 import type { AgentPeriod, EducationNews, Importance } from "./types";
 
@@ -46,7 +47,7 @@ function tokenize(message: string) {
 }
 
 function textOf(item: EducationNews) {
-  return [item.title, item.source, item.category, item.summary, item.teacher_insight, item.school_action]
+  return [item.title, item.translated_title, item.source, item.category, item.summary, item.teacher_insight, item.school_action]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -58,7 +59,7 @@ function scoreNews(item: EducationNews, message: string, tokens: string[]) {
   let score = item.importance ? importanceScore[item.importance] : 10;
 
   for (const token of tokens) {
-    if (item.title.toLowerCase().includes(token)) {
+    if (getDisplayTitle(item).toLowerCase().includes(token) || item.title.toLowerCase().includes(token)) {
       score += 14;
     } else if (text.includes(token)) {
       score += 7;

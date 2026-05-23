@@ -15,6 +15,37 @@ async function generateDailyBriefing(news: EducationNews[]) {
   });
 }
 
+function needsTranslatedTitle(item: EducationNews) {
+  return !item.translated_title && !/[가-힣]/.test(item.title);
+}
+
+function isMissingTranslatedTitleColumn(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    /translated_title|column/i.test(error.message)
+  );
+}
+
+async function updateNewsInsight(supabase: ReturnType<typeof getSupabaseAdmin>, item: EducationNews, update: Partial<EducationNews>) {
+  const { error } = await supabase.from("education_news").update(update).eq("id", item.id);
+
+  if (!error) {
+    return null;
+  }
+
+  if ("translated_title" in update && isMissingTranslatedTitleColumn(error)) {
+    const { translated_title: _translatedTitle, ...fallbackUpdate } = update;
+    const { error: fallbackError } = await supabase.from("education_news").update(fallbackUpdate).eq("id", item.id);
+
+    return fallbackError;
+  }
+
+  return error;
+}
+
 export async function GET(request: Request) {
   const unauthorized = rejectUnauthorizedCron(request);
 
@@ -40,7 +71,9 @@ export async function GET(request: Request) {
   const news = (data ?? []) as EducationNews[];
   const processed: EducationNews[] = [];
   const errors: Array<{ id: string; title: string; message: string }> = [];
-  const unanalyzed = news.filter((item) => !(item.summary && item.teacher_insight && item.school_action && item.importance));
+  const unanalyzed = news.filter(
+    (item) => !(item.summary && item.teacher_insight && item.school_action && item.importance) || needsTranslatedTitle(item),
+  );
 
   for (const item of news) {
     if (item.summary && item.teacher_insight && item.school_action && item.importance) {
@@ -67,7 +100,7 @@ export async function GET(request: Request) {
         }
 
         const { id: _id, ...update } = insight;
-        const { error: updateError } = await supabase.from("education_news").update(update).eq("id", item.id);
+        const updateError = await updateNewsInsight(supabase, item, update);
 
         if (updateError) {
           errors.push({ id: item.id, title: item.title, message: updateError.message });

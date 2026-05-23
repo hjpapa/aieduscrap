@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import TransformButtons from "@/components/TransformButtons";
+import { getDisplayTitle, hasTranslatedTitle } from "@/lib/newsDisplay";
 import type { AgentPeriod, NewsReference, RoleType } from "@/lib/types";
 
 type AgentResponse = {
@@ -65,7 +66,7 @@ function formatAnswerForExport(response: AgentResponse) {
 
   if (!structured) {
     const references = response.references
-      .map((item, index) => `${index + 1}. ${item.title}\n- 출처: ${item.source}\n- URL: ${item.url}`)
+      .map((item, index) => `${index + 1}. ${getDisplayTitle(item)}\n- 원제: ${item.title}\n- 출처: ${item.source}\n- URL: ${item.url}`)
       .join("\n\n");
 
     return [`뉴스 근거 답변`, response.answer, "", "참고 뉴스", references].join("\n\n");
@@ -80,7 +81,7 @@ function formatAnswerForExport(response: AgentResponse) {
         `- 뉴스 근거: ${card.factSummary}`,
         `- 교사 관점: ${card.teacherInterpretation}`,
         `- 학교 적용: ${card.schoolAction}`,
-        reference ? `- 참고 뉴스: ${reference.title} / ${reference.source} / ${reference.url}` : null,
+        reference ? `- 참고 뉴스: ${getDisplayTitle(reference)} / ${reference.source} / ${reference.url}` : null,
       ]
         .filter(Boolean)
         .join("\n");
@@ -158,7 +159,10 @@ function StructuredAnswerView({ response }: { response: AgentResponse }) {
                     rel="noreferrer"
                     target="_blank"
                   >
-                    <span className="block break-words font-bold leading-6 text-stone-950">{reference.title}</span>
+                    <span className="block break-words font-bold leading-6 text-stone-950">{getDisplayTitle(reference)}</span>
+                    {hasTranslatedTitle(reference) ? (
+                      <span className="mt-1 block break-words text-xs text-stone-500">{reference.title}</span>
+                    ) : null}
                     <span className="mt-1 block text-xs font-semibold text-stone-500">
                       {reference.source} · {formatDate(reference.published_at)}
                     </span>
@@ -441,7 +445,10 @@ export default function AgentChat() {
                           rel="noreferrer"
                           target="_blank"
                         >
-                          <span className="block break-words font-bold leading-6 text-stone-950">{item.title}</span>
+                          <span className="block break-words font-bold leading-6 text-stone-950">{getDisplayTitle(item)}</span>
+                          {hasTranslatedTitle(item) ? (
+                            <span className="mt-1 block break-words text-xs text-stone-500">{item.title}</span>
+                          ) : null}
                           <span className="mt-1 block break-words text-xs font-semibold text-stone-500">
                             {item.source} · {formatDate(item.published_at)}
                           </span>
