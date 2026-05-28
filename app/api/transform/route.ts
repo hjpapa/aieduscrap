@@ -22,6 +22,32 @@ function toReferences(news: EducationNews[]): NewsReference[] {
   }));
 }
 
+function getReferenceTitle(reference: NewsReference) {
+  return reference.translated_title?.trim() || reference.title;
+}
+
+function formatReferencesForSave(references: NewsReference[]) {
+  if (references.length === 0) {
+    return "";
+  }
+
+  return [
+    "미주",
+    ...references.map((reference, index) =>
+      [
+        `[${index + 1}] ${getReferenceTitle(reference)}`,
+        `- 출처: ${reference.source}`,
+        `- 발행일: ${reference.published_at}`,
+        `- URL: ${reference.url}`,
+      ].join("\n"),
+    ),
+  ].join("\n\n");
+}
+
+function appendEndnotes(content: string, references: NewsReference[]) {
+  return [content, formatReferencesForSave(references)].filter(Boolean).join("\n\n");
+}
+
 async function saveOutput({
   outputType,
   roleType,
@@ -85,7 +111,7 @@ export async function POST(request: Request) {
       roleType,
       newsIds: references.map((item) => item.id),
       title,
-      content,
+      content: appendEndnotes(content, references),
     });
 
     return NextResponse.json({

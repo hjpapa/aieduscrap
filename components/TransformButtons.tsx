@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { OutputType, RoleType } from "@/lib/types";
+import type { NewsReference, OutputType, RoleType } from "@/lib/types";
 
 type TransformResult = {
   title: string;
   content: string;
+  references?: NewsReference[];
   provider?: string;
 };
 
@@ -16,6 +17,38 @@ const outputs: Array<{ type: OutputType; label: string }> = [
   { type: "parent_notice", label: "학부모 안내문" },
   { type: "checklist", label: "체크리스트" },
 ];
+
+function getReferenceTitle(reference: NewsReference) {
+  return reference.translated_title?.trim() || reference.title;
+}
+
+function formatReferenceDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
+}
+
+function buildEndnotes(references: NewsReference[] = []) {
+  if (references.length === 0) {
+    return "";
+  }
+
+  const lines = references.map((reference, index) =>
+    [
+      `[${index + 1}] ${getReferenceTitle(reference)}`,
+      `- 출처: ${reference.source}`,
+      `- 발행일: ${formatReferenceDate(reference.published_at)}`,
+      `- URL: ${reference.url}`,
+    ].join("\n"),
+  );
+
+  return ["미주", ...lines].join("\n\n");
+}
+
+function buildExportText(result: TransformResult) {
+  return [result.title, result.content, buildEndnotes(result.references)].filter(Boolean).join("\n\n");
+}
 
 export default function TransformButtons({ newsIds, roleType }: { newsIds: string[]; roleType: RoleType }) {
   const [loadingType, setLoadingType] = useState<OutputType | null>(null);
@@ -29,7 +62,7 @@ export default function TransformButtons({ newsIds, roleType }: { newsIds: strin
       return;
     }
 
-    await navigator.clipboard.writeText(`${result.title}\n\n${result.content}`);
+    await navigator.clipboard.writeText(buildExportText(result));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -39,7 +72,7 @@ export default function TransformButtons({ newsIds, roleType }: { newsIds: strin
       return;
     }
 
-    const blob = new Blob([`${result.title}\n\n${result.content}`], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([buildExportText(result)], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -160,6 +193,37 @@ export default function TransformButtons({ newsIds, roleType }: { newsIds: strin
               <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 whitespace-pre-wrap text-sm leading-7 text-stone-700 [overflow-wrap:anywhere]">
                 {result.content}
               </div>
+
+              {result.references && result.references.length > 0 ? (
+                <section className="mt-5 rounded-lg border border-stone-200 bg-white p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h5 className="text-sm font-black text-stone-950">미주</h5>
+                    <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-500">
+                      {result.references.length}건
+                    </span>
+                  </div>
+                  <ol className="grid gap-3 text-sm leading-6 text-stone-700">
+                    {result.references.map((reference, index) => (
+                      <li className="grid gap-1 rounded-md border border-stone-100 bg-stone-50 p-3" key={reference.id}>
+                        <p className="font-bold text-stone-950">
+                          [{index + 1}] {getReferenceTitle(reference)}
+                        </p>
+                        <p className="text-xs font-semibold text-stone-500">
+                          {reference.source} · {formatReferenceDate(reference.published_at)}
+                        </p>
+                        <a
+                          className="break-words text-xs font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                          href={reference.url}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {reference.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
             </div>
           </section>
         </div>
